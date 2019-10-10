@@ -32,9 +32,10 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     applyscene : StringProperty(name="target:", maxlen=63 )
 
 
+
 #ロケータに親子付けする
 #ロケータを作成してペアレント。ロケータがすでに存在していれば作成しない
-def parent_empty(current_scene_name , result):
+def parent_to_empty(current_scene_name , result):
 
     new_name = current_scene_name + '_parent'
 
@@ -82,6 +83,7 @@ def put_into_collection(current_scene_name , result ,scn):
             col2.objects.link(dat.obj)
         else:
             col.objects.link(dat.obj)
+
 
 #髪の毛のコンバート
 # #複数のヘアパーティクルがあることを想定
@@ -171,6 +173,106 @@ def set_current_scene():
     bpy.context.scene.kiatools_oa.prop = bpy.context.scene.name
 
 
+#apply modelの第一段階
+#パーティクルをカーブ化する
+def apply_model_sortout(ob , new_name , isMirror):
+
+    props = bpy.context.scene.kiatools_oa
+    objs = bpy.data.objects
+    col_name = ob.users_collection[0].name #現在所属しているコレクションを保持しておく
+
+    result = None
+    isHair = False
+
+    utils.activeObj(ob)
+    utils.select(ob,False)
+
+    #既にモデルが存在していたら削除する
+    if bpy.data.objects.get(new_name) is not None:
+        objs.remove(objs[new_name], do_unlink = True)
+        
+
+    #ヘアーパーティクルの場合
+    #パーティクル削除にチェックがあったら髪の毛として処理しない
+    #複数のパーティクルがある場合に対応する必要あり
+
+    hairarray = []
+    for mod in ob.modifiers:
+        if mod.type == 'PARTICLE_SYSTEM':
+            if not props.deleteparticle_apply:#髪の毛として処理しない
+                hairarray.append(mod.name)
+                isHair = True
+ 
+
+    #髪の毛でなければオブジェクトをコピーする。
+    #髪の毛ならパーティクルをコンバートする
+    if isHair:
+        new_obj_array = convert_hair(hairarray, new_name , ob)
+        for new_obj in new_obj_array:
+            result = PublishedData(new_obj , col_name ,isMirror)
+
+    
+    #髪の毛でない場合
+    else:
+        print(ob.name)
+        new_obj = ob.copy()
+        new_obj.data = ob.data.copy()
+        new_obj.animation_data_clear()
+
+        utils.sceneLink(new_obj)
+        new_obj.name = new_name
+
+        utils.select(new_obj,True)
+        utils.activeObj(new_obj)
+
+
+        result = PublishedData(new_obj , col_name ,isMirror)
+
+    return result
+
+
+#apply modelの第２段階
+#モディファイヤの処理
+def apply_model_modifier(dat): 
+    props = bpy.context.scene.kiatools_oa
+
+    utils.select(dat.obj,True)
+    utils.activeObj(dat.obj)
+
+    #親子付けを切る
+    bpy.ops.object.parent_clear(type = 'CLEAR_KEEP_TRANSFORM')
+
+
+    #カーブならメッシュ化する。前のループで実行するとなぜかorgモデルまでメッシュ化してしまう。なのでここで実行する。
+    #髪の毛はここでメッシュ化される
+
+    if dat.obj.type == 'CURVE':
+        if not props.keephair_apply:
+            bpy.ops.object.convert(target = 'MESH')            
+
+    #モディファイヤ適用
+    for mod in dat.obj.modifiers:
+
+        #アーマチュアをキープする
+        if (mod.type == 'ARMATURE') and bpy.context.scene.publishkeeparmature_bool:
+            pass
+
+        #モディファイヤが非表示なら削除する
+        elif mod.show_viewport == False:
+            bpy.context.object.modifiers.remove(mod)
+        else:
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
+    #ミラーパブリッシュモード(この前のループで処理しようとするとエラーが出るのでここで実行)
+    #if bpy.context.scene.publishmirror_bool:
+    if dat.mirror:
+        bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
+        mod = dat.obj.modifiers.new( 'mirror' , type = 'MIRROR' )
+        bpy.ops.object.modifier_apply(modifier=mod.name)   
+
+
+
 class PublishedData:
     obj = None
     colname = ''
@@ -181,6 +283,8 @@ class PublishedData:
         self.mirror = mirror
 
 
+
+#Operator--------------------------------------------------------------------------
 
 class KIATOOLS_MT_object_applier(bpy.types.Operator):
     bl_idname = "kiatools.object_applier"
@@ -213,8 +317,9 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
         row.prop(props, "applyscene" , icon='APPEND_BLEND')
 
         row = box.row()
-        row.operator("kiatools.apply_model")
-        row.operator("kiatools.apply_particle_instance")
+        row.operator("kiatools.apply_model" , icon='OBJECT_DATAMODE' )
+        row.operator("kiatools.apply_collection" , icon='GROUP' )
+        row.operator("kiatools.apply_particle_instance", icon='PARTICLES' )
 
 
         row = layout.row(align=False)
@@ -241,7 +346,6 @@ class KIATOOLS_OT_change_scene(bpy.types.Operator):
         scene = bpy.context.scene.kiatools_oa.prop
         bpy.context.window.scene = bpy.data.scenes[scene]
         set_current_scene()
-        #bpy.context.scene.kiatools_oa.prop = bpy.context.scene.name
         return {'FINISHED'}
 
 
@@ -249,7 +353,7 @@ class KIATOOLS_OT_change_scene(bpy.types.Operator):
 class KIATOOLS_OT_set_apply_scene(bpy.types.Operator):
     """アプライするシーンを指定する"""
     bl_idname = "kiatools.set_apply_scene"
-    bl_label = "target scene"
+    bl_label = "assign target"
 
     def execute(self, context):        
         bpy.context.scene.kiatools_oa.applyscene= bpy.context.scene.kiatools_oa.prop
@@ -270,68 +374,112 @@ class KIATOOLS_OT_move_model(bpy.types.Operator):
         result = []
         for ob in utils.selected():
             col = ob.users_collection[0]
-            #col_name = ob.users_collection[0].name
             result.append(PublishedData(ob , col.name ,False))
 
             col.objects.unlink(ob)
-            #utils.sceneUnlink(ob)
         
         put_into_collection(current , result ,bpy.data.scenes[scene])
         set_current_scene()
 
-        # bpy.context.window.scene = bpy.data.scenes[scene]
-
-        # for ob in utils.selected():
-        #     utils.sceneLink(ob)
-
-
-        # bpy.context.scene.kiatools_oa.prop = bpy.context.scene.name
         return {'FINISHED'}
 
 
-# class KIATOOLS_OT_add_new_fixScn(bpy.types.Operator):
-#     """新しいFixScnを生成する"""
-#     bl_idname = "kiatools.add_new_fixscn"
-#     bl_label = "FixScn追加"
+#選択したコレクションに含まれたモデルを対象に
+#出力名にコレクション名を付ける
+#末尾にorgcを付ける
+class KIATOOLS_OT_apply_collection(bpy.types.Operator):
+    """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
+    bl_idname = "kiatools.apply_collection"
+    bl_label = "col"
 
-#     def execute(self, context):
-#         fix_scene = NewSceneName()
-#         if bpy.data.scenes.get(fix_scene) is not None:
-#             return {'FINISHED'}
+    collections = set()
+
+    def get_obj_from_collection(self,x):
+        self.collections.add(x.name)
+        for col in x.children.keys():
+            self.get_obj_from_collection(x.children[col])
+
+    def execute(self, context):
+
+        props = bpy.context.scene.kiatools_oa
+        current_scene_name = bpy.context.scene.name
+        fix_scene = props.applyscene
 
 
-#         #cur_scene = bpy.context.scene
-#         #print("current Scene?: %s" % (cur_scene))
-#         bpy.ops.scene.new(type='EMPTY')     
-#         bpy.context.scene.name = fix_scene
-#         #new_context = bpy.context.scene
-#         #print("newScene?: %s" % (new_context))
+        #コレクションに含まれているオブジェクトを取得
+        #コレクションの子供コレクションを再帰的に調べて全部取得する
+        self.collections.clear()
+        bpy.ops.object.select_all(action='DESELECT') 
+        collection = bpy.context.view_layer.active_layer_collection 
+        self.get_obj_from_collection( collection )
+        collection_name = collection.name
 
-#         return {'FINISHED'}
+        new_name = collection_name + '_orgc'
+
+
+        #選択されたコレクションにリンクされたオブジェクトを取得
+        for ob in bpy.context.scene.objects: 
+            if ob.users_collection[0].name in self.collections: 
+                utils.select(ob,True)
+
+        result = []
+        sel = bpy.context.selected_objects
+
+        #apply対象はメッシュかカーブ。それ以外は除外する
+        for ob in sel:
+            if ob.type == 'MESH' or ob.type == 'CURVE':
+                #new_name = ob.name + '_tmp'
+                result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
+                print( ob.name)
+
+        bpy.ops.object.select_all(action='DESELECT') 
+
+        for dat in result:
+                apply_model_modifier(dat)
+        
+
+        for dat in result:
+            utils.sceneUnlink(dat.obj)
+
+        scn = utils.sceneActive(fix_scene)
+
+        #コレクションにまとめる
+        put_into_collection(current_scene_name , result , scn)
+
+        #強制的にマージする
+        utils.deselectAll()
+        for dat in result:
+            utils.select(dat.obj,True)
+
+        utils.activeObj(result[0].obj)
+        bpy.ops.object.join()
+
+        result[0].obj.name = new_name
+
+        return {'FINISHED'}
+
 
 
 #モデル名に_orgをつけてそれを作業用のモデルとする。Fix_Scnというシーンにリンクする。
 #ヘアーパーティクルも対象とする機能を追加
 #木などパーティクルインスタンスがついているがアプライ時に削除したいときパーティクルモディファイヤを削除　
-
 class KIATOOLS_OT_apply_model(bpy.types.Operator):
-    """モデルのモディファイアフリーズ＞_orgを削除したモデルを複製＞選択シーンににリンク"""
+    """名前の末尾にorgがついたモデルが対象\nモディファイアフリーズ＞_orgを削除したモデルを複製＞選択シーンににリンク"""
     bl_idname = "kiatools.apply_model"
-    bl_label = "apply model"
+    bl_label = "org"
 
     def execute(self, context):
 
         props = bpy.context.scene.kiatools_oa
-        merge = False
+        merge = props.merge_apply
 
-
-        if props.merge_apply:
-            merge = True
+        # if props.merge_apply:
+        #     merge = True
 
         current_scene_name = bpy.context.scene.name
+        fix_scene = props.applyscene
 
-        #fix_scene = NewSceneName()
-        fix_scene = bpy.context.scene.kiatools_oa.prop
+
         if bpy.data.scenes.get(fix_scene) is None:
             print(u'Not found Scene')
             return {'FINISHED'}
@@ -340,17 +488,18 @@ class KIATOOLS_OT_apply_model(bpy.types.Operator):
         #scn = bpy.context.scene
         sel = bpy.context.selected_objects
         #scene_obj = bpy.context.scene.objects
-        objs = bpy.data.objects
+        
 
 
         result = []
         for ob in sel:
             isOrg = False
             isMirror = False
-            isHair = False
+            #isHair = False
 
+            print(ob.name)
             name = ob.name
-            col_name = ob.users_collection[0].name #現在所属しているコレクションを保持しておく
+            #col_name = ob.users_collection[0].name #現在所属しているコレクションを保持しておく
 
             #objの末尾に_orgがついていなければスルー
             if name[-3:] == 'org':
@@ -364,89 +513,91 @@ class KIATOOLS_OT_apply_model(bpy.types.Operator):
                 isMirror = True
 
             if isOrg:
-                utils.activeObj(ob)
-                utils.select(ob,False)
+                result.append( apply_model_sortout(ob , new_name , isMirror) )
+                # utils.activeObj(ob)
+                # utils.select(ob,False)
 
-                #既にモデルが存在していたら削除する
-                if bpy.data.objects.get(new_name) is not None:
-                    objs.remove(objs[new_name], do_unlink = True)
+                # #既にモデルが存在していたら削除する
+                # if bpy.data.objects.get(new_name) is not None:
+                #     objs.remove(objs[new_name], do_unlink = True)
                     
 
-                #ヘアーパーティクルの場合
-                #パーティクル削除にチェックがあったら髪の毛として処理しない
-                #複数のパーティクルがある場合に対応する必要あり
+                # #ヘアーパーティクルの場合
+                # #パーティクル削除にチェックがあったら髪の毛として処理しない
+                # #複数のパーティクルがある場合に対応する必要あり
 
-                hairarray = []
-                for mod in ob.modifiers:
-                    if mod.type == 'PARTICLE_SYSTEM':
-                        if not props.deleteparticle_apply:#髪の毛として処理しない
-                            hairarray.append(mod.name)
-                            isHair = True
-                print('---------------------------')
-                print(hairarray)
-                print('---------------------------')
+                # hairarray = []
+                # for mod in ob.modifiers:
+                #     if mod.type == 'PARTICLE_SYSTEM':
+                #         if not props.deleteparticle_apply:#髪の毛として処理しない
+                #             hairarray.append(mod.name)
+                #             isHair = True
+                # print('---------------------------')
+                # print(hairarray)
+                # print('---------------------------')
 
-                #髪の毛でなければオブジェクトをコピーする。
-                #髪の毛ならパーティクルをコンバートする
-                if isHair:
-                    new_obj_array = convert_hair(hairarray, new_name , ob)
-                    for new_obj in new_obj_array:
-                        result.append(PublishedData(new_obj , col_name ,isMirror))
+                # #髪の毛でなければオブジェクトをコピーする。
+                # #髪の毛ならパーティクルをコンバートする
+                # if isHair:
+                #     new_obj_array = convert_hair(hairarray, new_name , ob)
+                #     for new_obj in new_obj_array:
+                #         result.append(PublishedData(new_obj , col_name ,isMirror))
 
                 
-                #髪の毛でない場合
-                else:
-                    new_obj = ob.copy()
-                    new_obj.data = ob.data.copy()
-                    new_obj.animation_data_clear()
+                # #髪の毛でない場合
+                # else:
+                #     new_obj = ob.copy()
+                #     new_obj.data = ob.data.copy()
+                #     new_obj.animation_data_clear()
 
-                    utils.sceneLink(new_obj)
-                    new_obj.name = new_name
+                #     utils.sceneLink(new_obj)
+                #     new_obj.name = new_name
 
-                    utils.select(new_obj,True)
-                    utils.activeObj(new_obj)
+                #     utils.select(new_obj,True)
+                #     utils.activeObj(new_obj)
 
 
-                    result.append(PublishedData(new_obj , col_name ,isMirror))
+                #     result.append(PublishedData(new_obj , col_name ,isMirror))
 
         bpy.ops.object.select_all(action='DESELECT')
 
 
         for dat in result:
-            utils.select(dat.obj,True)
-            utils.activeObj(dat.obj)
+            apply_model_modifier(dat)
+            # utils.select(dat.obj,True)
+            # utils.activeObj(dat.obj)
 
-            #カーブならメッシュ化する。前のループで実行するとなぜかorgモデルまでメッシュ化してしまう。なのでここで実行する。
-            #髪の毛はここでメッシュ化される
+            # #カーブならメッシュ化する。前のループで実行するとなぜかorgモデルまでメッシュ化してしまう。なのでここで実行する。
+            # #髪の毛はここでメッシュ化される
 
-            if dat.obj.type == 'CURVE':
-                if not props.publishnotmesh_bool:
-                    bpy.ops.object.convert(target = 'MESH')            
+            # if dat.obj.type == 'CURVE':
+            #     if not props.publishnotmesh_bool:
+            #         bpy.ops.object.convert(target = 'MESH')            
 
-            #モディファイヤ適用
-            for mod in dat.obj.modifiers:
+            # #モディファイヤ適用
+            # for mod in dat.obj.modifiers:
 
-                #アーマチュアをキープする
-                if (mod.type == 'ARMATURE') and bpy.context.scene.publishkeeparmature_bool:
-                    pass
+            #     #アーマチュアをキープする
+            #     if (mod.type == 'ARMATURE') and bpy.context.scene.publishkeeparmature_bool:
+            #         pass
 
-                #モディファイヤが非表示なら削除する
-                elif mod.show_viewport == False:
-                    bpy.context.object.modifiers.remove(mod)
-                else:
-                    bpy.ops.object.modifier_apply(modifier=mod.name)
+            #     #モディファイヤが非表示なら削除する
+            #     elif mod.show_viewport == False:
+            #         bpy.context.object.modifiers.remove(mod)
+            #     else:
+            #         bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
 
-            #ミラーパブリッシュモード(この前のループで処理しようとするとエラーが出るのでここで実行)
-            #if bpy.context.scene.publishmirror_bool:
-            if dat.mirror:
-                #親子付けを切る
-                bpy.ops.object.parent_clear(type = 'CLEAR_KEEP_TRANSFORM')
+            # #ミラーパブリッシュモード(この前のループで処理しようとするとエラーが出るのでここで実行)
+            # #if bpy.context.scene.publishmirror_bool:
+            # if dat.mirror:
+            #     #親子付けを切る
+            #     bpy.ops.object.parent_clear(type = 'CLEAR_KEEP_TRANSFORM')
 
-                bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
-                mod = dat.obj.modifiers.new( 'mirror' , type = 'MIRROR' )
-                bpy.ops.object.modifier_apply(modifier=mod.name)            
+            #     bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
+            #     mod = dat.obj.modifiers.new( 'mirror' , type = 'MIRROR' )
+            #     bpy.ops.object.modifier_apply(modifier=mod.name)            
 
 
 
@@ -461,7 +612,7 @@ class KIATOOLS_OT_apply_model(bpy.types.Operator):
         scn = utils.sceneActive(fix_scene)
 
         #親子付けをする場合（現状はオミット）
-        #parent_empty(current_scene_name , result)
+        #parent_to_empty(current_scene_name , result)
 
         #コレクションにまとめる
         put_into_collection(current_scene_name , result , scn)
@@ -579,7 +730,8 @@ classes = (
     KIATOOLS_OT_apply_particle_instance,
     KIATOOLS_OT_change_scene,
     KIATOOLS_OT_move_model,
-    KIATOOLS_OT_set_apply_scene
+    KIATOOLS_OT_set_apply_scene,
+    KIATOOLS_OT_apply_collection,
 )
 
 def register():
