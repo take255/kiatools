@@ -68,13 +68,13 @@ class KIATOOLS_MT_modifiertools(bpy.types.Operator):
         # row.operator( "object.add_solidify_modifier" , icon = 'MODIFIER')
         # row.operator( "object.add_shrinkwrap_modifier" , icon = 'MODIFIER')
 
-        # #モディファイヤ追加2
-        # row = box.row(align=True)
-        # row.alignment = 'EXPAND'
+        #モディファイヤ追加2
+        row = box.row(align=True)
+        row.alignment = 'EXPAND'
 
-        # row.operator( "object.add_bevel_modifier" , icon = 'MODIFIER')
-        # row.operator( "object.add_shrinkwrap_modifier_2node" , icon = 'MODIFIER')
-        # row.operator( "object.add_lattice_modifier_2node" , icon = 'MODIFIER')
+        #row.operator( "kiatools.add_bevel_modifier" , icon = 'MODIFIER')
+        #row.operator( "kiatools.add_shrinkwrap_modifier_2node" , icon = 'MODIFIER')
+        row.operator( "kiatools.add_lattice_modifier_2node" , icon = 'MODIFIER')
 
        
         # #モディファイヤアトリビュート調整
@@ -137,11 +137,64 @@ class KIATOOLS_OT_select_modifier_curve(bpy.types.Operator):
         return {'FINISHED'}
 
 
+#二つのノードを選択してモディファイヤアサインと同時にターゲットを割り当てる
+#ターゲットモデルをアクティブとするので　モディファイヤをアサインしたいモデルをまず選択、最後にターゲットを選択する
+class AddModifier_2Node(bpy.types.Operator):
+    modifier_type = ''
+    modifier_name = ''
+
+    def execute(self, context):
+        sel = bpy.context.selected_objects
+        active=bpy.context.active_object
+
+        result = []
+        for obj in sel:
+            if obj != active:
+                result.append(obj)
+                m = obj.modifiers.new( self.modifier_name , type = self.modifier_type )
+                self.settarget(m,active)
+                #m.target = active
+                self.setAttr(m)
+
+        
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+
+        for ob in result:
+            #ob.select = True
+            utils.select(ob,True)
+            utils.activeObj(ob)
+            #bpy.context.scene.objects.active = ob #アクティブにしておかないとモディファイヤをmoveしたとき固まるぞ
+
+
+        return {'FINISHED'}
+
+    def settarget(self,m,active):
+        m.target = active
+
+
+    def setAttr(self,m):
+        pass
+
+
+
+class KIATOOLS_OT_add_lattice_modifier_2node(AddModifier_2Node):
+    """ラティスモディファイヤ追加。複数モデルを選択し、最後にラティスモデルを選択する。"""
+    bl_idname = "kiatools.add_lattice_modifier_2node"
+    bl_label = "Lattice2node"
+    modifier_type = 'LATTICE'
+    modifier_name = 'LATTICE'
+
+    def settarget(self,m,active):
+        m.object = active
+
+
 
 
 classes = (
     KIATOOLS_MT_modifiertools,
-    KIATOOLS_OT_select_modifier_curve
+    KIATOOLS_OT_select_modifier_curve,
+    KIATOOLS_OT_add_lattice_modifier_2node
 )
 
 def register():
