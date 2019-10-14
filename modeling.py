@@ -163,6 +163,8 @@ class KIATOOLS_OT_select_modifier_curve(bpy.types.Operator):
         return {'FINISHED'}
 
 
+#Add Modifier---------------------------------------------------------------------------------------
+
 #二つのノードを選択してモディファイヤアサインと同時にターゲットを割り当てる
 #ターゲットモデルをアクティブとするので　モディファイヤをアサインしたいモデルをまず選択、最後にターゲットを選択する
 class AddModifier_2Node(bpy.types.Operator):
@@ -221,9 +223,9 @@ class KIATOOLS_OT_add_shrinkwrap(AddModifier_2Node):
 
 
 
-
+#Constraint---------------------------------------------------------------------------------------
 #アクティブをコンスト先にする
-class Add_Constraint(bpy.types.Operator):
+class Constraint_Add(bpy.types.Operator):
     const_type = ''
     #const_name = ''
 
@@ -263,15 +265,15 @@ class Add_Constraint(bpy.types.Operator):
         pass
 
 
-class KIATOOLS_OT_add_copy_transform_constraint(Add_Constraint):
+class KIATOOLS_OT_const_add_copy_transform(Constraint_Add):
     """Copy Transform コンストレイン追加"""
-    bl_idname = "kiatools.add_copy_transform_constraint"
+    bl_idname = "kiatools.const_add_copy_transform"
     bl_label = "Copy Transforms"
     const_type = 'COPY_TRANSFORMS'
     #const_name = 'COPY_TORANSFORMS'
 
 
-
+#UI---------------------------------------------------------------------------------------
 class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
     bl_idname = "kiatools.modelingtools"
@@ -296,6 +298,7 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
         row = box.row()
         row.prop(props, "const_bool" , icon='RESTRICT_VIEW_OFF')
+        row.prop(props, "showhide_bool" , icon='RESTRICT_VIEW_OFF')
         row.operator( "kiatools.group" , icon = 'MODIFIER')
 
         row = box.row()
@@ -314,7 +317,7 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
         box = layout.box()
         box.label( text = 'constraint' )
 
-        box.operator( "kiatools.add_copy_transform_constraint" , icon = 'MODIFIER')
+        box.operator( "kiatools.const_add_copy_transform" , icon = 'MODIFIER')
 
 
 
@@ -369,7 +372,7 @@ classes = (
     KIATOOLS_OT_select_modifier_curve,
     KIATOOLS_OT_add_lattice,
     KIATOOLS_OT_add_shrinkwrap,
-    KIATOOLS_OT_add_copy_transform_constraint,
+    KIATOOLS_OT_const_add_copy_transform,
     KIATOOLS_OT_replace_locator
 
 )

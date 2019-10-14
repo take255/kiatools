@@ -60,6 +60,8 @@ def parent_to_empty(current_scene_name , result):
 
 #パブリッシュ時にコレクションにまとめる
 #orgのモデルがコレクションに属していれば、そのコレクションも複製
+
+#コレクションが存在していて、かつ出力先にそのコレクションがない場合はエラーになる。その対処をする必要あり
 def put_into_collection(current_scene_name , result ,scn):
     new_name = current_scene_name + '_collection'
 
@@ -74,18 +76,16 @@ def put_into_collection(current_scene_name , result ,scn):
     for dat in result:
 
         #所属していたコレクションがマスターでないなら
-        #コレクション名 + 'Applied' というコレクションに移動
+        # 'A_' + コレクション名  というコレクションに移動
 
         if dat.colname != 'Master Collection':
-            new_name = dat.colname + '_Applied'
+            new_name =  'A_' + dat.colname
 
-            if new_name in col.children.keys():
-                col2 = col.children[new_name]
-
-            else:
+            if new_name not in col.children.keys():
                 col2 = bpy.data.collections.new(new_name)
                 col.children.link(col2)
 
+            col2 = col.children[new_name]
             col2.objects.link(dat.obj)
         else:
             col.objects.link(dat.obj)

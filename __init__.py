@@ -49,9 +49,20 @@ def kiatools_handler(scene):
     # print(scene)
     # print('----------------------------')
     # bpy.context.scene.kiatools_oa.prop = scene
-
-
     pass
+
+
+#ob　が　selectedの子供かどうか調べる。孫以降も調査。
+def isParent(ob , selected):
+    parent = ob.parent
+    if parent == None:
+        return False
+
+    if parent in selected:
+        return True
+    else:
+        isParent(parent , parent)
+
 
 #シーンを追加したとき、それぞれのシーンにあるシーンリストを更新してあげる必要がある
 def go_scene(self,context):
@@ -77,6 +88,8 @@ def go_scene(self,context):
             props.target_allscene.add().name = scn.name       
 
 
+#選択したコンストレインの表示、非表示
+#その際、選択オブジェクトにフォーカスする
 def showhide_constraint(self,context):
     props = bpy.context.scene.kiatools_oa
     
@@ -103,7 +116,59 @@ def showhide_constraint(self,context):
 
     #utils.deselectAll()
     utils.multiSelection(selected)
-    
+
+
+#ＯＮで現在の表示状態を保持しておき選択モデルだけ表示、ＯＦＦでもとに戻す
+def showhide_object(self,context):
+    props = bpy.context.scene.kiatools_oa    
+    selected = utils.selected()
+
+
+    #選択以外をハイド
+    if props.showhide_bool:
+        props.displayed_allobjs.clear()
+        #すべてのオブジェクトの表示状態を保持して、選択状態でなければハイドする
+        for ob in bpy.data.objects:
+            if bpy.data.objects[ob.name].visible_get():
+                props.displayed_allobjs.add().name = ob.name
+
+                if not ob in selected: 
+                    if not isParent(ob , selected): 
+                        ob.hide_viewport = True
+                
+        # for ob in selected:
+        #     ob.hide_viewport = False
+
+    #表示をもとに戻す
+    else:
+        for ob in props.displayed_allobjs:
+            #print(ob.name)
+            #ob.hide_viewport = False
+            bpy.data.objects[ob.name].hide_viewport = False
+
+
+
+    # for ob in selected:
+    #     utils.activeObj(ob)
+    #     for const in ob.constraints:
+    #         const.mute = props.const_bool
+
+    #         #muteオンオフだけではコンストレインがアップデートされない問題
+    #         #この行の追加で解消
+    #         const.influence = 1.0 
+
+
+    # #表示されているならセレクトする    
+    # for ob in bpy.data.objects: 
+    #     if ob.parent in selected: 
+    #         if bpy.data.objects[ob.name].visible_get():
+    #             utils.select(ob,True)
+        
+    bpy.ops.view3d.view_selected(use_all_regions = False)
+
+    utils.multiSelection(selected)
+
+
 
 
 
@@ -121,9 +186,12 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     target_scene_name : StringProperty(name="Target", maxlen=63 ,update = go_scene)
     target_allscene : CollectionProperty(type=PropertyGroup)
 
-    #モデリング関連
+    #モデリング関連:showhide_bool 選択したオブジェクトだけ表示
     const_bool : BoolProperty(name="mute const" , update = showhide_constraint)
 
+    showhide_bool : BoolProperty(name="showhide" , update = showhide_object)
+    displayed_obj : StringProperty(name="Target", maxlen=63)    
+    displayed_allobjs : CollectionProperty(type=PropertyGroup)
 
 
 class KIAToolsPanel(utils.panel):   
