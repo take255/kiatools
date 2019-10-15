@@ -16,28 +16,6 @@ import imp
 from . import utils
 imp.reload(utils)
 
-    
-
-# class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
-#     #アプライオプション
-#     deleteparticle_apply : BoolProperty(name="delete particle" ,  default = False)
-#     keephair_apply : BoolProperty(name="keep hair" ,  default = False)
-#     keeparmature_apply : BoolProperty(name="keep armature" ,  default = False)
-#     merge_apply : BoolProperty(name="merge" ,  default = True)
-
-#     #シーン名 currentsceneに現在のシーン名を保存しておき、
-#     scene_name : StringProperty(name="Scene", maxlen=63 ,update = go_scene)
-#     allscene : CollectionProperty(type=PropertyGroup)
-
-#     target_scene_name : StringProperty(name="Target", maxlen=63 ,update = go_scene)
-#     target_allscene : CollectionProperty(type=PropertyGroup)
-
-
-
-    #アプライ先シーン
-    #applyscene : StringProperty(name="target:", maxlen=63 )
-
-
 
 #ロケータに親子付けする
 #ロケータを作成してペアレント。ロケータがすでに存在していれば作成しない
@@ -100,7 +78,6 @@ def convert_hair(hairarray, new_name , ob):
         utils.activeObj(ob)
         utils.select(ob,True)
         #コンバートするとメッシュオブジェクトが作られてそれがアクティブな状態になっている
-        print(hairname)
         bpy.ops.object.modifier_convert(modifier = hairname)
 
         bpy.ops.object.convert(target='CURVE')
@@ -297,30 +274,9 @@ class PublishedData:
 
 #Operator--------------------------------------------------------------------------
 
-
-
-# #リストから選択したシーンに移動
-# class KIATOOLS_OT_change_scene(bpy.types.Operator):
-#     """選択したシーンに移動する"""
-#     bl_idname = "kiatools.change_scene"
-#     bl_label = "go to scene"
-
-#     def execute(self, context):        
-#         scene = bpy.context.scene.kiatools_oa.scene_name
-#         bpy.context.window.scene = bpy.data.scenes[scene]
-#         set_current_scene()
-#         return {'FINISHED'}
-
-
-# #アプライするシーンを指定する
-# class KIATOOLS_OT_set_apply_scene(bpy.types.Operator):
-#     """アプライするシーンを指定する"""
-#     bl_idname = "kiatools.set_apply_scene"
-#     bl_label = "assign target"
-
-#     def execute(self, context):        
-#         bpy.context.scene.kiatools_oa.applyscene= bpy.context.scene.kiatools_oa.scene_name
-#         return {'FINISHED'}
+#ニューシーンを作る
+#将来的にはダイアログを出して名前を指定できるようにする
+#class KIATOOLS_OT_new_scene(bpy.types.Operator):
 
 
 

@@ -8,7 +8,8 @@ from bpy.props import(
     IntProperty,
     BoolProperty,
     StringProperty,
-    CollectionProperty
+    CollectionProperty,
+    FloatProperty
     )
 
 from . import utils
@@ -61,7 +62,7 @@ def isParent(ob , selected):
     if parent in selected:
         return True
     else:
-        isParent(parent , parent)
+        isParent(parent , selected)
 
 
 #シーンを追加したとき、それぞれのシーンにあるシーンリストを更新してあげる必要がある
@@ -90,10 +91,12 @@ def go_scene(self,context):
 
 #選択したコンストレインの表示、非表示
 #その際、選択オブジェクトにフォーカスする
+#
+
 def showhide_constraint(self,context):
     props = bpy.context.scene.kiatools_oa
-    
     selected = utils.selected()
+    act = utils.getActiveObj()
 
     for ob in selected:
         utils.activeObj(ob)
@@ -116,13 +119,13 @@ def showhide_constraint(self,context):
 
     #utils.deselectAll()
     utils.multiSelection(selected)
+    utils.activeObj(act)
 
 
 #ＯＮで現在の表示状態を保持しておき選択モデルだけ表示、ＯＦＦでもとに戻す
 def showhide_object(self,context):
     props = bpy.context.scene.kiatools_oa    
     selected = utils.selected()
-
 
     #選択以外をハイド
     if props.showhide_bool:
@@ -135,39 +138,49 @@ def showhide_object(self,context):
                 if not ob in selected: 
                     if not isParent(ob , selected): 
                         ob.hide_viewport = True
+                    else:
+                        utils.select(ob,True)
                 
-        # for ob in selected:
-        #     ob.hide_viewport = False
-
+    
     #表示をもとに戻す
     else:
         for ob in props.displayed_allobjs:
-            #print(ob.name)
-            #ob.hide_viewport = False
             bpy.data.objects[ob.name].hide_viewport = False
+            #utils.select(ob,True)
 
+        if not ob in selected: 
+            if isParent(ob , selected): 
+                utils.selectByName(ob,True)
 
-
-    # for ob in selected:
-    #     utils.activeObj(ob)
-    #     for const in ob.constraints:
-    #         const.mute = props.const_bool
-
-    #         #muteオンオフだけではコンストレインがアップデートされない問題
-    #         #この行の追加で解消
-    #         const.influence = 1.0 
-
-
-    # #表示されているならセレクトする    
-    # for ob in bpy.data.objects: 
-    #     if ob.parent in selected: 
-    #         if bpy.data.objects[ob.name].visible_get():
-    #             utils.select(ob,True)
-        
+    
     bpy.ops.view3d.view_selected(use_all_regions = False)
-
+    utils.deselectAll()
     utils.multiSelection(selected)
 
+
+#モディファイヤの値調整
+#Solidifyの厚み　、Shrinkwrapオフセット、ベベル幅調整　、アレイの個数
+def modifier_apply(self,context):
+    act = utils.getActiveObj()
+    props = bpy.context.scene.kiatools_oa
+    
+    print(props.mod_init)
+    if props.mod_init:
+        props.mod_init = False
+        return
+
+    for mod in act.modifiers:
+        if mod.type == 'SOLIDIFY':
+            mod.thickness = props.solidify_thickness
+
+        if mod.type == 'ARRAY':
+            mod.count = props.array_count
+
+        if mod.type == 'BEVEL':
+            mod.width = props.bevel_width
+
+        if mod.type == 'SHRINKWRAP':
+            mod.offset = props.shrinkwrap_offset
 
 
 
@@ -192,6 +205,52 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     showhide_bool : BoolProperty(name="showhide" , update = showhide_object)
     displayed_obj : StringProperty(name="Target", maxlen=63)    
     displayed_allobjs : CollectionProperty(type=PropertyGroup)
+
+
+    #モディファイヤ関連
+    # mod_init :モデリングツールを起動したときmodifier_applyが走らないようにする
+    mod_init : BoolProperty(default = True)
+
+    solidify_thickness : FloatProperty(
+        name = "Solidify_thick",
+        description = "Soliifyの厚みを調整する",
+        min=-1.0,
+        max=1.0,
+        default=0.01,
+        precision = 4,
+        step = 0.1,        
+        update=modifier_apply)
+
+    shrinkwrap_offset : FloatProperty(
+        name = "wrap_ofset",
+        description = "Shrinkwrapのオフセットを調整する",
+        min=0,
+        max=1.0,
+        default=0.01,
+        precision = 4,
+        step = 0.1,
+        update=modifier_apply)
+
+    bevel_width : FloatProperty(
+        name = "Bevel_width",
+        description = "Bevel幅を調整する",
+        min=0,
+        max=0.5,
+        default=0.1,
+        precision = 4,
+        step = 0.1,
+        update=modifier_apply)
+
+    array_count : IntProperty(
+        name = "Array_num",
+        description = "アレイの数調整",
+        min=1,
+        max=200,
+        default=1,
+        step = 1,
+        update=modifier_apply)
+
+
 
 
 class KIAToolsPanel(utils.panel):   
