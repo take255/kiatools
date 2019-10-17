@@ -146,20 +146,6 @@ def NewSceneName():
     return fix_scene
 
 
-#現在のシーンをシーンメニューにセット
-def set_current_scene():
-    props = bpy.context.scene.kiatools_oa
-
-    props.allscene.clear()
-    props.target_allscene.clear()
-
-    for scn in bpy.data.scenes:
-        props.allscene.add().name = scn.name
-        props.target_allscene.add().name = scn.name
-
-    props.scene_name = bpy.context.scene.name
-    #props.target_scene_name = bpy.context.scene.name
-
 
 #apply modelの第一段階
 #パーティクルをカーブ化する
@@ -562,62 +548,8 @@ class KIATOOLS_OT_apply_particle_instance(bpy.types.Operator):
 
 
 
-class KIATOOLS_MT_object_applier(bpy.types.Operator):
-    bl_idname = "kiatools.object_applier"
-    bl_label = "Object Applier"
-
-    def invoke(self, context, event):
-        set_current_scene()        
-        return context.window_manager.invoke_props_dialog(self)
-
-    def execute(self, context):
-        return{'FINISHED'}
-
-
-    def draw(self, context):
-        #scn = context.scene
-        props = bpy.context.scene.kiatools_oa
-        layout=self.layout
-
-        row = layout.row(align=False)
-        box = row.box()
-
-        #row = box.row()
-
-        box.prop_search(props, "scene_name", props, "allscene", icon='SCENE_DATA')
-
-        #row.operator("kiatools.change_scene", icon = 'FILE_IMAGE')
-
-        box = layout.row(align=False).box()
-        row = box.row()
-        box.prop_search(props, "target_scene_name", props, "target_allscene", icon='SCENE_DATA')
-
-        #row.operator("kiatools.set_apply_scene", icon='TRACKING_FORWARDS')
-        #row.prop(props, "applyscene" , icon='APPEND_BLEND')
-
-        row = box.row()
-        row.operator("kiatools.apply_model" , icon='OBJECT_DATAMODE' )
-        row.operator("kiatools.apply_collection" , icon='GROUP' )
-        row.operator("kiatools.apply_particle_instance", icon='PARTICLES' )
-        row.operator("kiatools.move_model" , icon = 'DECORATE_DRIVER')
-
-
-        row = layout.row(align=False)
-        box = row.box()
-        box.label(text = 'options')
-        row = box.row()
-
-        row = box.row()
-        row.prop(props, "merge_apply")
-        row.prop(props, "deleteparticle_apply")
-
-        row = box.row()
-        row.prop(props, "keeparmature_apply")
-        row.prop(props, "keephair_apply")
 
 classes = (
-    #KIATOOLS_Props_OA,
-    KIATOOLS_MT_object_applier,
     KIATOOLS_OT_apply_model,
     KIATOOLS_OT_apply_particle_instance,
     KIATOOLS_OT_move_model,
@@ -627,7 +559,6 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    #bpy.types.Scene.kiatools_oa = PointerProperty(type=KIATOOLS_Props_OA)
 
 def unregister():
     for cls in classes:
