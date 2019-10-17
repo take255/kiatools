@@ -9,11 +9,15 @@ from bpy.props import(
     BoolProperty,
     StringProperty,
     CollectionProperty,
-    FloatProperty
+    FloatProperty,
+    EnumProperty
     )
 
 from . import utils
+from . import modifier
+
 imp.reload(utils)
+imp.reload(modifier)
 
 bl_info = {
 "name": "kiatools",
@@ -160,28 +164,30 @@ def showhide_object(self,context):
 
 #モディファイヤの値調整
 #Solidifyの厚み　、Shrinkwrapオフセット、ベベル幅調整　、アレイの個数
-def modifier_apply(self,context):
-    act = utils.getActiveObj()
-    props = bpy.context.scene.kiatools_oa
+# def modifier_apply(self,context):
+#     act = utils.getActiveObj()
+#     props = bpy.context.scene.kiatools_oa
     
-    print(props.mod_init)
-    if props.mod_init:
-        props.mod_init = False
-        return
+#     print(props.mod_init)
+#     if props.mod_init:
+#         props.mod_init = False
+#         return
 
-    for mod in act.modifiers:
-        if mod.type == 'SOLIDIFY':
-            mod.thickness = props.solidify_thickness
+#     for mod in act.modifiers:
+#         if mod.type == 'SOLIDIFY':
+#             mod.thickness = props.solidify_thickness
 
-        if mod.type == 'ARRAY':
-            mod.count = props.array_count
+#         if mod.type == 'ARRAY':
+#             mod.count = props.array_count
 
-        if mod.type == 'BEVEL':
-            mod.width = props.bevel_width
+#         if mod.type == 'BEVEL':
+#             mod.width = props.bevel_width
 
-        if mod.type == 'SHRINKWRAP':
-            mod.offset = props.shrinkwrap_offset
+#         if mod.type == 'SHRINKWRAP':
+#             mod.offset = props.shrinkwrap_offset
 
+
+MODIFIER_TYPE = ( ('LATTICE','LATTICE','') , ('SHRINKWRAP','SHRINKWRAP','') , ('CURVE','CURVE',''))
 
 
 
@@ -211,6 +217,10 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     # mod_init :モデリングツールを起動したときmodifier_applyが走らないようにする
     mod_init : BoolProperty(default = True)
 
+    # modifier_name : StringProperty(name="Target", maxlen=63 ,update = go_scene)
+    # target_allscene : CollectionProperty(type=PropertyGroup)
+    modifier_type : EnumProperty(items = MODIFIER_TYPE , name = 'modifier')
+
     solidify_thickness : FloatProperty(
         name = "Solidify_thick",
         description = "Soliifyの厚みを調整する",
@@ -219,7 +229,7 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
         default=0.01,
         precision = 4,
         step = 0.1,        
-        update=modifier_apply)
+        update=modifier.apply)
 
     shrinkwrap_offset : FloatProperty(
         name = "wrap_ofset",
@@ -229,7 +239,7 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
         default=0.01,
         precision = 4,
         step = 0.1,
-        update=modifier_apply)
+        update=modifier.apply)
 
     bevel_width : FloatProperty(
         name = "Bevel_width",
@@ -239,7 +249,7 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
         default=0.1,
         precision = 4,
         step = 0.1,
-        update=modifier_apply)
+        update=modifier.apply)
 
     array_count : IntProperty(
         name = "Array_num",
@@ -248,8 +258,11 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
         max=200,
         default=1,
         step = 1,
-        update=modifier_apply)
+        update=modifier.apply)
 
+    array_offset_x : FloatProperty(name = "x", update=modifier.apply)
+    array_offset_y : FloatProperty(name = "y",  update=modifier.apply)
+    array_offset_z : FloatProperty(name = "z",  update=modifier.apply)
 
 
 
@@ -257,7 +270,6 @@ class KIAToolsPanel(utils.panel):
     bl_label ='KIAtools'
     def draw(self, context):
         self.layout.operator("kiatools.object_applier", icon='BLENDER')
-        #self.layout.operator("kiatools.modifiertools", icon='BLENDER')
         self.layout.operator("kiatools.modelingtools", icon='BLENDER')
 
 

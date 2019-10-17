@@ -5,15 +5,21 @@ import imp
 from mathutils import Matrix
 
 from . import utils
+from . import modifier
+
 imp.reload(utils)
+imp.reload(modifier)
 
 #コンストレインが１つでもONならTrue
 #muteがONなのが
 def get_constraint_status():
 
+    act = utils.getActiveObj()
+    if act == None:
+        return
+
     props = bpy.context.scene.kiatools_oa
 
-    act = utils.getActiveObj()
     status = False
     for const in act.constraints:
         status = (status or const.mute)
@@ -30,24 +36,24 @@ def move_collection( ob , col ):
 
 
 
-#モディファイヤのパラメータ値を取得
-def get_modifier_param():
-    props = bpy.context.scene.kiatools_oa
-    act  = utils.getActiveObj()
+# #モディファイヤのパラメータ値を取得
+# def get_modifier_param():
+#     props = bpy.context.scene.kiatools_oa
+#     act  = utils.getActiveObj()
 
-    props.mod_init = True
-    for mod in act.modifiers:
-        if mod.type == 'SOLIDIFY':
-            props.solidify_thickness = mod.thickness
+#     props.mod_init = True
+#     for mod in act.modifiers:
+#         if mod.type == 'SOLIDIFY':
+#             props.solidify_thickness = mod.thickness
 
-        if mod.type == 'ARRAY':
-            props.array_count = mod.count
+#         if mod.type == 'ARRAY':
+#             props.array_count = mod.count
 
-        if mod.type == 'BEVEL':
-            props.bevel_width = mod.width
+#         if mod.type == 'BEVEL':
+#             props.bevel_width = mod.width
 
-        if mod.type == 'SHRINKWRAP':
-            props.wrap_ofset = mod.offset
+#         if mod.type == 'SHRINKWRAP':
+#             props.wrap_ofset = mod.offset
 
 
 #モデルに位置にロケータを配置してコンストレインする。
@@ -233,80 +239,47 @@ class KIATOOLS_OT_collections_hide(bpy.types.Operator):
 
 
 #Add Modifier---------------------------------------------------------------------------------------
-
 #二つのノードを選択してモディファイヤアサインと同時にターゲットを割り当てる
 #ターゲットモデルをアクティブとするので　モディファイヤをアサインしたいモデルをまず選択、最後にターゲットを選択する
-class AddModifier_2Node(bpy.types.Operator):
-    modifier_type = ''
-    modifier_name = ''
+
+class KIATOOLS_OT_modifier_asign(bpy.types.Operator):
+    
+    """モディファイヤを適用する"""
+    bl_idname = "kiatools.modifier_asign"
+    bl_label = "assign"
 
     def execute(self, context):
+
+        props = bpy.context.scene.kiatools_oa    
+        modtype = props.modifier_type
+
         sel = bpy.context.selected_objects
-        #active=bpy.context.active_object
         active = utils.getActiveObj()
-        print('active-----')
-        print(active.name)
 
         result = []
         for obj in sel:
-            print('obj-----')
-            print(obj.name)
-
-
             if obj != active:
                 result.append(obj)
-                m = obj.modifiers.new( self.modifier_name , type = self.modifier_type )
-                self.settarget(m,active)
-                #m.target = active
-                self.setAttr(m)
+                m = obj.modifiers.new( modtype , type = modtype )
 
-        
+                if modtype == 'LATTICE' or modtype == 'CURVE':
+                    m.object = active
+
+                elif modtype == 'SHRINKWRAP':
+                    mm.target = active
+
+
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
         for ob in result:
-            #ob.select = True
             utils.select(ob,True)
             utils.activeObj(ob)
-            #bpy.context.scene.objects.active = ob #アクティブにしておかないとモディファイヤをmoveしたとき固まるぞ
-
 
         return {'FINISHED'}
 
-    def settarget(self,m,active):
-        m.target = active
-
-    def setAttr(self,m):
-        pass
 
 
-class KIATOOLS_OT_add_lattice(AddModifier_2Node):
-    """ラティスモディファイヤ追加。複数モデルを選択し、最後にラティスモデルを選択する。"""
-    bl_idname = "kiatools.add_lattice"
-    bl_label = "Lattice"
-    modifier_type = 'LATTICE'
-    modifier_name = 'LATTICE'
-
-    def settarget(self,m,active):
-        m.object = active
-
-class KIATOOLS_OT_add_shrinkwrap(AddModifier_2Node):
-    """シュリンクラップモディファイヤ追加\n複数モデルを選択し、最後にラップモデルを選択する。"""
-    bl_idname = "kiatools.add_shrinkwrap"
-    bl_label = "Shrinkwrap"
-    modifier_type = 'SHRINKWRAP'
-    modifier_name = 'Shrinkwrap'
-
-
-class KIATOOLS_OT_add_curve(AddModifier_2Node):
-    """カーブモディファイヤ追加\n複数モデルを選択し、最後にカーブモデルを選択する。"""
-    bl_idname = "kiatools.add_curve"
-    bl_label = "Curve"
-    modifier_type = 'CURVE'
-    modifier_name = 'CURVE'
-
-    def settarget(self,m,active):
-        m.object = active
 
 #Constraint---------------------------------------------------------------------------------------
 #アクティブをコンスト先にする
@@ -371,7 +344,7 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
     def invoke(self, context, event):
         #アクティブオブジェクトのコンストレインの状態を取得
         get_constraint_status()
-        get_modifier_param()
+        modifier.get_param()
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -383,14 +356,18 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
         box = row.box()
 
         row = box.row()
-        row.prop(props, "const_bool" , icon='RESTRICT_VIEW_OFF')
-        row.prop(props, "showhide_bool" , icon='RESTRICT_VIEW_OFF')
-        row.operator( "kiatools.group" , icon = 'MODIFIER')
 
-        row = box.row()
-        row.operator( "kiatools.preserve_child" , icon = 'MODIFIER')
-        row.operator( "kiatools.restore_child" , icon = 'MODIFIER')
-        row.operator( "kiatools.replace_locator" , icon = 'MODIFIER')
+        box1 = row.box()
+        box1.prop(props, "const_bool" , icon='RESTRICT_VIEW_OFF')
+        box1.prop(props, "showhide_bool" , icon='RESTRICT_VIEW_OFF')
+
+        box2 = row.box()
+        box2.operator( "kiatools.replace_locator" , icon = 'MODIFIER')
+        box2.operator( "kiatools.group" , icon = 'MODIFIER')
+
+        box3 = row.box()
+        box3.operator( "kiatools.preserve_child" , icon = 'MODIFIER')
+        box3.operator( "kiatools.restore_child" , icon = 'MODIFIER')
 
 
         box = layout.box()
@@ -398,10 +375,6 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
         box.operator( "kiatools.selectmodifiercurve" , icon = 'MODIFIER')
 
-        row = box.row()
-        row.operator( "kiatools.add_lattice" , icon = 'MODIFIER')
-        row.operator( "kiatools.add_shrinkwrap" , icon = 'MODIFIER')
-        row.operator( "kiatools.add_curve" , icon = 'MODIFIER')
 
         row = box.row()
         row.prop(props, "solidify_thickness" , icon='RESTRICT_VIEW_OFF')
@@ -409,9 +382,23 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
         row = box.row()
         row.prop(props, "bevel_width" , icon='RESTRICT_VIEW_OFF')
-        row.prop(props, "array_count" , icon='RESTRICT_VIEW_OFF')
+
+        box = box.box()
+        box.label( text = 'Array' )
+
+        box.prop(props, "array_count" , icon='RESTRICT_VIEW_OFF')
+
+        row = box.row()
+        row.prop(props, "array_offset_x" , icon='RESTRICT_VIEW_OFF')
+        row.prop(props, "array_offset_y" , icon='RESTRICT_VIEW_OFF')
+        row.prop(props, "array_offset_z" , icon='RESTRICT_VIEW_OFF')
 
 
+        box = layout.box()
+        box.label( text = 'assign modifier' )
+        row = box.row()
+        row.operator( "kiatools.modifier_asign" , icon = 'MODIFIER')
+        row.prop(props, "modifier_type" , icon='RESTRICT_VIEW_OFF')
 
 
         box = layout.box()
@@ -473,9 +460,8 @@ classes = (
     KIATOOLS_OT_preserve_child,
     KIATOOLS_OT_select_modifier_curve,
 
-    KIATOOLS_OT_add_lattice,
-    KIATOOLS_OT_add_shrinkwrap,
-    KIATOOLS_OT_add_curve,
+
+    KIATOOLS_OT_modifier_asign,
 
     KIATOOLS_OT_const_add_copy_transform,
     KIATOOLS_OT_replace_locator,
