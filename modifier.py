@@ -4,6 +4,7 @@ import imp
 from . import utils
 imp.reload(utils)
 
+TYPE = ( ('LATTICE','LATTICE','') , ('SHRINKWRAP','SHRINKWRAP','') , ('CURVE','CURVE',''))
 
 #モディファイヤのパラメータ値を取得
 def get_param():

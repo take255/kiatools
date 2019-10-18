@@ -12,18 +12,13 @@ imp.reload(utils)
 imp.reload(locator)
 
 
-#モデルに位置にロケータを配置してコンストレインする。
-#中間にロケータをかます。親のロケータの形状をsphereにする。
-#モデルのトランスフォームは初期値にする
-#ロケータを '09_ConstRoot'　に入れる
-
 class KIATOOLS_OT_replace_locator(bpy.types.Operator):
     """モデルに位置にロケータを配置してコンストレインする。モデルのトランスフォームは初期値にする。"""
     bl_idname = "kiatools.replace_locator"
     bl_label = "to locator"
 
     def execute(self, context):
-        locator.replace_locator()
+        locator.replace()
         return {'FINISHED'}
 
 class KIATOOLS_OT_replace_locator_facenormal(bpy.types.Operator):
@@ -32,30 +27,16 @@ class KIATOOLS_OT_replace_locator_facenormal(bpy.types.Operator):
     bl_label = "face normal"
 
     def execute(self, context):
-        locator.replace_locator_facenormal()
+        locator.replace_facenormal()
         return {'FINISHED'}
 
-
-#選択したモデルをロケータでまとめる
-#アクティブなモデルの名前を継承する
 class KIATOOLS_OT_group(bpy.types.Operator):
     """ロケータで選択モデルをまとめる"""
     bl_idname = "kiatools.group"
     bl_label = "group"
 
     def execute(self, context):
-        selected = utils.selected()
-        act = utils.getActiveObj()
-        locatorname = act.name + '_parent'
-
-        bpy.ops.object.empty_add(type='PLAIN_AXES')
-        empty = utils.getActiveObj()
-        empty.name = locatorname
-        empty.matrix_world = Matrix()
-
-        for obj in selected:
-            obj.parent = empty
- 
+        locator.group()
         return {'FINISHED'}
 
 
@@ -72,7 +53,6 @@ class KIATOOLS_OT_preserve_child(bpy.types.Operator):
             #一時的に退避するロケータを作成
             name = '%s_temp' % obj.name
             bpy.ops.object.empty_add(type='PLAIN_AXES')
-            #empty = bpy.context.active_object
             empty = utils.getActiveObj()
             empty.name = name
             for child in obj.children:

@@ -8,6 +8,15 @@ from . import utils
 imp.reload(utils)
 
 
+
+#モデルに位置にロケータを配置してコンストレインする。
+#中間にロケータをかます。親のロケータの形状をsphereにする。
+#モデルのトランスフォームは初期値にする
+#ロケータを '09_ConstRoot'　に入れる
+
+
+
+
 #オブジェクトをコレクションに移動
 def move_collection( ob , col ):
     collections = ob.users_collection
@@ -28,7 +37,6 @@ def create_locator_collection():
         col = bpy.data.collections.new(colname)
         scn.collection.children.link(col)
     return col
-
 
 
 def create_locator(name , matrix):
@@ -60,34 +68,12 @@ def create_locator(name , matrix):
     return empty_p
 
 
-def replace_locator():
+#replace : オブジェクトをロケータの子供にして扱いやすくする
+#選択モデルをロケータに親子付けをしてコンストレイン。
+def replace():
     selected = utils.selected()
     
-
     for obj in selected:
-        # #ロケータを作成
-        # bpy.ops.object.empty_add(type='PLAIN_AXES')
-        # empty = bpy.context.active_object
-        # empty.name =  obj.name + '_constlocator'
-        # empty.matrix_world = obj.matrix_world
-
-        # move_collection(empty , col)
-        
-
-        # #親のロケータを作成
-        # bpy.ops.object.empty_add(type='SPHERE')
-        # empty_p = bpy.context.active_object
-        # empty_p.name = obj.name + '_parent'
-        # empty_p.matrix_world = Matrix()
-
-        # move_collection(empty_p , col)
-
-
-        # constraint =empty_p.constraints.new('COPY_TRANSFORMS')
-        # constraint.target = empty
-        # constraint.target_space ='WORLD'
-        # constraint.owner_space = 'WORLD'
-
         empty_p = create_locator(obj.name , obj.matrix_world)
         
         obj.matrix_world = Matrix()
@@ -96,7 +82,7 @@ def replace_locator():
 
 #エディットモードで選択したフェースのノーマルを基準にロケータを生成する
 #法線方向が(0,0,1)の時は例外処理する必要あり。内積をとって判定。
-def replace_locator_facenormal():
+def replace_facenormal():
 
     obj = bpy.context.edit_object
     me = obj.data
@@ -145,3 +131,18 @@ def replace_locator_facenormal():
     obj.matrix_world = m0.inverted().to_4x4() @ mat_loc
     
     obj.parent = empty_p
+
+#選択したモデルをロケータでまとめる
+#アクティブなモデルの名前を継承する
+def group():
+    selected = utils.selected()
+    act = utils.getActiveObj()
+    locatorname = act.name + '_parent'
+
+    bpy.ops.object.empty_add(type='PLAIN_AXES')
+    empty = utils.getActiveObj()
+    empty.name = locatorname
+    empty.matrix_world = Matrix()
+
+    for obj in selected:
+        obj.parent = empty

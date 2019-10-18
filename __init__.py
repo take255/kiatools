@@ -18,6 +18,7 @@ from . import modifier
 from . import display
 from . import object_applier
 from . import modeling
+from . import curve
 
 
 imp.reload(utils)
@@ -25,6 +26,7 @@ imp.reload(modifier)
 imp.reload(display)
 imp.reload(object_applier)
 imp.reload(modeling)
+imp.reload(curve)
 
 
 bl_info = {
@@ -34,8 +36,6 @@ bl_info = {
 "blender": (2, 80, 0),
 "description": "kiatools",
 "category": "Object"}
-
-
 
 
 @persistent
@@ -66,39 +66,6 @@ def kiatools_handler(scene):
     # print('----------------------------')
     # bpy.context.scene.kiatools_oa.prop = scene
     pass
-
-
-
-#コンストレインが１つでもONならTrue
-#muteがONなのが
-# def get_constraint_status():
-
-#     act = utils.getActiveObj()
-#     if act == None:
-#         return
-
-#     props = bpy.context.scene.kiatools_oa
-
-#     status = False
-#     for const in act.constraints:
-#         status = (status or const.mute)
-
-#     props.const_bool = status
-
-
-
-
-
-#ob　が　selectedの子供かどうか調べる。孫以降も調査。
-# def isParent(ob , selected):
-#     parent = ob.parent
-#     if parent == None:
-#         return False
-
-#     if parent in selected:
-#         return True
-#     else:
-#         isParent(parent , selected)
 
 
 #シーンを追加したとき、それぞれのシーンにあるシーンリストを更新してあげる必要がある
@@ -138,82 +105,6 @@ def set_current_scene():
 
     props.scene_name = bpy.context.scene.name
 
-#選択したコンストレインの表示、非表示
-#その際、選択オブジェクトにフォーカスする
-#
-
-# def showhide_constraint(self,context):
-#     props = bpy.context.scene.kiatools_oa
-#     selected = utils.selected()
-#     act = utils.getActiveObj()
-
-#     for ob in selected:
-#         utils.activeObj(ob)
-#         for const in ob.constraints:
-#             const.mute = props.const_bool
-
-#             #muteオンオフだけではコンストレインがアップデートされない問題
-#             #この行の追加で解消
-#             const.influence = 1.0 
-
-
-#     #表示されているならセレクトする    
-#     for ob in bpy.data.objects: 
-#         if ob.parent in selected: 
-#             if bpy.data.objects[ob.name].visible_get():
-#                 utils.select(ob,True)
-#             #children.append(ob) 
-        
-#     bpy.ops.view3d.view_selected(use_all_regions = False)
-
-#     #utils.deselectAll()
-#     utils.multiSelection(selected)
-#     utils.activeObj(act)
-
-
-#ＯＮで現在の表示状態を保持しておき選択モデルだけ表示、ＯＦＦでもとに戻す
-# def showhide_object(self,context):
-#     props = bpy.context.scene.kiatools_oa    
-#     selected = utils.selected()
-
-#     #選択以外をハイド
-#     if props.showhide_bool:
-#         props.displayed_allobjs.clear()
-#         #すべてのオブジェクトの表示状態を保持して、選択状態でなければハイドする
-#         for ob in bpy.data.objects:
-#             if bpy.data.objects[ob.name].visible_get():
-#                 props.displayed_allobjs.add().name = ob.name
-
-#                 if not ob in selected: 
-#                     if not isParent(ob , selected): 
-#                         ob.hide_viewport = True
-#                     else:
-#                         utils.select(ob,True)
-                
-    
-#     #表示をもとに戻す
-#     else:
-#         for ob in props.displayed_allobjs:
-#             bpy.data.objects[ob.name].hide_viewport = False
-#             #utils.select(ob,True)
-
-#         if not ob in selected: 
-#             if isParent(ob , selected): 
-#                 utils.selectByName(ob,True)
-
-    
-#     bpy.ops.view3d.view_selected(use_all_regions = False)
-#     utils.deselectAll()
-#     utils.multiSelection(selected)
-
-
-
-# def showhide_collection(self,context):
-#     pass
-
-
-
-MODIFIER_TYPE = ( ('LATTICE','LATTICE','') , ('SHRINKWRAP','SHRINKWRAP','') , ('CURVE','CURVE',''))
 
 class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     #アプライオプション
@@ -245,7 +136,7 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
 
     #モディファイヤ関連
     mod_init : BoolProperty(default = True)
-    modifier_type : EnumProperty(items = MODIFIER_TYPE , name = 'modifier' )
+    modifier_type : EnumProperty(items = modifier.TYPE , name = 'modifier' )
 
 
     solidify_thickness : FloatProperty(name = "Solidify_thick",precision = 4, update=modifier.apply)
@@ -265,6 +156,44 @@ class KIATOOLS_MT_toolPanel(utils.panel):
     def draw(self, context):
         self.layout.operator("kiatools.object_applier", icon='BLENDER')
         self.layout.operator("kiatools.modelingtools", icon='BLENDER')
+        self.layout.operator("kiatools.displaytools", icon='BLENDER')
+
+
+
+class KIATOOLS_MT_displaytools(bpy.types.Operator):
+
+    bl_idname = "kiatools.displaytools"
+    bl_label = "display toggle"
+
+    def execute(self, context):
+        return{'FINISHED'}
+
+    def invoke(self, context, event):
+        #アクティブオブジェクトのコンストレインの状態を取得
+        display.get_constraint_status()
+        modifier.get_param()
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        props = bpy.context.scene.kiatools_oa
+        layout=self.layout
+
+        row = layout.row(align=False)
+        box = row.box()
+
+        row = box.row(align=True)
+
+        #row.alignment = 'LEFT'
+        row.prop(props, "const_bool" , icon='CONSTRAINT')
+        row.prop(props, "showhide_bool" , icon='EMPTY_DATA')
+
+        box = row.box()
+        box.label( text = 'collection' )
+
+        row = box.row()
+        row.prop(props, "showhide_collection_bool" , icon='GROUP')
+        row.operator( "kiatools.preserve_collections" , icon = 'IMPORT')
+
 
 
 class KIATOOLS_MT_modelingtools(bpy.types.Operator):
@@ -278,13 +207,9 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
     def invoke(self, context, event):
         #アクティブオブジェクトのコンストレインの状態を取得
-        display.get_constraint_status()
-        #display.get_collection_status()
-        modifier.get_param()
-        props = bpy.context.scene.kiatools_oa
-
-        #props.showhide_collection_bool = True #アクティブなモデルのコレクションは表示になっているはず。
-        #props.displayed_allcollections.clear()
+        # display.get_constraint_status()
+        # modifier.get_param()
+        # props = bpy.context.scene.kiatools_oa
 
         return context.window_manager.invoke_props_dialog(self)
 
@@ -298,15 +223,15 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
         row = box.row()
 
-        box1 = row.box()
-        box1.label( text = 'display tgl' , icon = 'IMGDISPLAY')
-        box1.prop(props, "const_bool" , icon='CONSTRAINT')
-        box1.prop(props, "showhide_bool" , icon='EMPTY_DATA')
+        # box1 = row.box()
+        # box1.label( text = 'display tgl' , icon = 'IMGDISPLAY')
+        # box1.prop(props, "const_bool" , icon='CONSTRAINT')
+        # box1.prop(props, "showhide_bool" , icon='EMPTY_DATA')
 
-        row1 = box1.row(align=True)
-        row.alignment = 'LEFT'
-        row1.prop(props, "showhide_collection_bool" , icon='GROUP')
-        row1.operator( "kiatools.preserve_collections" , icon = 'IMPORT')
+        # row1 = box1.row(align=True)
+        # row.alignment = 'LEFT'
+        # row1.prop(props, "showhide_collection_bool" , icon='GROUP')
+        # row1.operator( "kiatools.preserve_collections" , icon = 'IMPORT')
 
 
         box2 = row.box()
@@ -357,8 +282,25 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
         box.operator( "kiatools.const_add_copy_transform" , icon = 'MODIFIER')
         box.operator( "kiatools.collections_hide" , icon = 'MODIFIER')
 
+        box = layout.box()
+        box.label( text = 'curve' )
+        row = box.row()
 
-  
+        box1 = row.box()
+        box1.label( text = 'create' )
+        box1.operator( "kiatools.curve_create_with_bevel" , icon = 'MODIFIER')
+        box1.operator( "kiatools.curve_create_liner" , icon = 'MODIFIER')
+
+
+        box2 = row.box()
+        box2.label( text = 'bevel' )
+        box2.operator( "kiatools.curve_assign_bevel" , icon = 'MODIFIER')
+        box2.operator( "kiatools.curve_assign_circle_bevel" , icon = 'MODIFIER')
+        box2.operator( "kiatools.curve_assign_liner_bevel" , icon = 'MODIFIER')
+
+        box3 = row.box()
+        box3.label( text = 'select' )
+        box3.operator( "kiatools.curve_select_bevel" , icon = 'MODIFIER')
 
 
 class KIATOOLS_MT_object_applier(bpy.types.Operator):
@@ -415,12 +357,82 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
         row.prop(props, "keephair_apply")
 
 
+#Operator--------------------------------------------------------------------
+
+#Curve Tool
+class KIATOOLS_OT_curve_create_with_bevel(bpy.types.Operator):
+        """ベベル込みのカーブを作成する。"""
+        bl_idname = "kiatools.curve_create_with_bevel"
+        bl_label = "bevel curve"
+        
+        def execute(self, context):
+            curve.create_with_bevel()
+            return {'FINISHED'}
+
+class KIATOOLS_OT_curve_assign_bevel(bpy.types.Operator):
+        """カーブにベベルをアサイン\nカーブ、ベベルカーブの順に選択して実行"""
+        bl_idname = "kiatools.curve_assign_bevel"
+        bl_label = "select"
+        
+        def execute(self, context):
+            curve.assign_bevel()
+            return {'FINISHED'}
+
+class KIATOOLS_OT_curve_assign_circle_bevel(bpy.types.Operator):
+        """カーブに円のベベルをアサイン"""
+        bl_idname = "kiatools.curve_assign_circle_bevel"
+        bl_label = "circle"
+        
+        def execute(self, context):
+            curve.assign_circle_bevel()
+            return {'FINISHED'}
+
+class KIATOOLS_OT_curve_assign_liner_bevel(bpy.types.Operator):
+        """カーブに直線のベベルをアサイン"""
+        bl_idname = "kiatools.curve_assign_liner_bevel"
+        bl_label = "liner"
+        
+        def execute(self, context):
+            curve.assign_liner_bevel()
+            return {'FINISHED'}
+
+
+class KIATOOLS_OT_curve_create_liner(bpy.types.Operator):
+        """直線カーブを作成"""
+        bl_idname = "kiatools.curve_create_liner"
+        bl_label = "add liner"
+        
+        def execute(self, context):
+            curve.create_liner()
+            return {'FINISHED'}
+
+class KIATOOLS_OT_curve_select_bevel(bpy.types.Operator):
+        """選択カーブのベベルを選択"""
+        bl_idname = "kiatools.curve_select_bevel"
+        bl_label = "bevel"
+        
+        def execute(self, context):
+            curve.select_bevel()
+            return {'FINISHED'}
+
+
+
 
 classes = (
     KIATOOLS_Props_OA,
+
     KIATOOLS_MT_toolPanel,
+    KIATOOLS_MT_displaytools,
     KIATOOLS_MT_modelingtools,
-    KIATOOLS_MT_object_applier
+    KIATOOLS_MT_object_applier,
+
+    KIATOOLS_OT_curve_create_with_bevel,
+    KIATOOLS_OT_curve_create_liner,
+    KIATOOLS_OT_curve_assign_bevel,
+    KIATOOLS_OT_curve_assign_circle_bevel,
+    KIATOOLS_OT_curve_assign_liner_bevel,
+    KIATOOLS_OT_curve_select_bevel
+
 )
 
 
