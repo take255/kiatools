@@ -85,13 +85,7 @@ def kiatools_handler(scene):
 
 #     props.const_bool = status
 
-#オブジェクトをコレクションに移動
-# def move_collection( ob , col ):
-#     collections = ob.users_collection
-#     for c in collections:
-#          c.objects.unlink(ob)
 
-#     col.objects.link(ob)
 
 
 
@@ -318,6 +312,7 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
         box2 = row.box()
         box2.label( text = 'locator' )
         box2.operator( "kiatools.replace_locator" , icon = 'MODIFIER')
+        box2.operator( "kiatools.replace_locator_facenormal" , icon = 'MODIFIER')
         box2.operator( "kiatools.group" , icon = 'MODIFIER')
 
         box3 = row.box()

@@ -6,9 +6,10 @@ from mathutils import Matrix
 
 from . import utils
 from . import modifier
+from . import locator
 
 imp.reload(utils)
-imp.reload(modifier)
+imp.reload(locator)
 
 
 #モデルに位置にロケータを配置してコンストレインする。
@@ -22,56 +23,18 @@ class KIATOOLS_OT_replace_locator(bpy.types.Operator):
     bl_label = "to locator"
 
     def execute(self, context):
-        scn = bpy.context.scene
-        selected = utils.selected()
-        colname = '09_ConstRoot'
-        #master = 'Master Collection'
-        #コレクションが存在していればそのまま使用、なければ新規作成
-        if colname in scn.collection.children.keys():
-            col = scn.collection.children[colname]
-
-        else:
-            col = bpy.data.collections.new(colname)
-            scn.collection.children.link(col)
-
-
-        for obj in selected:
-            #ロケータを作成
-            bpy.ops.object.empty_add(type='PLAIN_AXES')
-            empty = bpy.context.active_object
-            empty.name =  obj.name + '_constlocator'
-            empty.matrix_world = obj.matrix_world
-
-            move_collection(empty , col)
-            
-            # if not col in empty.users_collection:                 
-            #     col.objects.link(empty)
-            # scn.collection.objects.unlink(empty)
-
-            #親のロケータを作成
-            bpy.ops.object.empty_add(type='SPHERE')
-            empty_p = bpy.context.active_object
-            empty_p.name = obj.name + '_parent'
-            empty_p.matrix_world = Matrix()
-
-            move_collection(empty_p , col)
-
-            # if not  col in empty_p.users_collection:
-            #     col.objects.link(empty_p)
-            # scn.collection.objects.unlink(empty_p)
-
-
-            constraint =empty_p.constraints.new('COPY_TRANSFORMS')
-            constraint.target = empty
-            constraint.target_space ='WORLD'
-            constraint.owner_space = 'WORLD'
-
-            
-            obj.matrix_world = Matrix()
-            obj.parent = empty_p
-
-
+        locator.replace_locator()
         return {'FINISHED'}
+
+class KIATOOLS_OT_replace_locator_facenormal(bpy.types.Operator):
+    """モデルに位置にロケータを配置してコンストレインする。モデルのトランスフォームは初期値にする。"""
+    bl_idname = "kiatools.replace_locator_facenormal"
+    bl_label = "face normal"
+
+    def execute(self, context):
+        locator.replace_locator_facenormal()
+        return {'FINISHED'}
+
 
 #選択したモデルをロケータでまとめる
 #アクティブなモデルの名前を継承する
@@ -293,6 +256,7 @@ classes = (
 
     KIATOOLS_OT_const_add_copy_transform,
     KIATOOLS_OT_replace_locator,
+    KIATOOLS_OT_replace_locator_facenormal,
     KIATOOLS_OT_collections_hide,
     KIATOOLS_OT_preserve_collections
 
