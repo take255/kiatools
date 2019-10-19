@@ -14,7 +14,10 @@ from bpy.props import(
 import imp
 
 from . import utils
+from . import scene
+
 imp.reload(utils)
+imp.reload(scene)
 
 
 #ロケータに親子付けする
@@ -286,7 +289,7 @@ class KIATOOLS_OT_move_model(bpy.types.Operator):
             col.objects.unlink(ob)
         
         put_into_collection(current , result ,bpy.data.scenes[target])
-        set_current_scene()
+        scene.set_current()
 
         return {'FINISHED'}
 

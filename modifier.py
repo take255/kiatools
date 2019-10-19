@@ -94,7 +94,7 @@ def assign():
                 m.object = active
 
             elif modtype == 'SHRINKWRAP':
-                mm.target = active
+                m.target = active
 
 
     # bpy.ops.object.mode_set(mode='OBJECT')

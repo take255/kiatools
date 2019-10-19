@@ -19,6 +19,7 @@ from . import display
 from . import object_applier
 from . import modeling
 from . import curve
+from . import scene
 
 
 imp.reload(utils)
@@ -27,6 +28,7 @@ imp.reload(display)
 imp.reload(object_applier)
 imp.reload(modeling)
 imp.reload(curve)
+imp.reload(scene)
 
 
 bl_info = {
@@ -91,19 +93,6 @@ def go_scene(self,context):
         for scn in bpy.data.scenes:
             props.target_allscene.add().name = scn.name       
 
-
-#現在のシーンをシーンメニューにセット
-def set_current_scene():
-    props = bpy.context.scene.kiatools_oa
-
-    props.allscene.clear()
-    props.target_allscene.clear()
-
-    for scn in bpy.data.scenes:
-        props.allscene.add().name = scn.name
-        props.target_allscene.add().name = scn.name
-
-    props.scene_name = bpy.context.scene.name
 
 
 class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
@@ -308,7 +297,7 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
     bl_label = "Object Applier"
 
     def invoke(self, context, event):
-        set_current_scene()        
+        scene.set_current()        
         return context.window_manager.invoke_props_dialog(self)
 
     def execute(self, context):
