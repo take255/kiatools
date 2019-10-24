@@ -20,6 +20,46 @@ imp.reload(utils)
 imp.reload(scene)
 
 
+collections = set()
+#collections_no_children = set() #子供コレクションを持っていないコレクション
+
+class PublishedData:
+    obj = None
+    colname = ''
+    mirror = False
+    def __init__(self ,  obj , colname , mirror):
+        self.obj = obj
+        self.colname = colname
+        self.mirror = mirror
+
+
+#コレクションに含まれているコレクションを取得
+#コレクションの子供コレクションを再帰的に調べて全部取得する
+def get_obj_from_collection(x):
+    collections.add(x.name)
+    # print(x.name,x.children , len(x.children))
+    # if len(x.children) == 0:
+    #     collections_no_children.add(x.name)
+    for col in x.children.keys():
+        get_obj_from_collection(x.children[col])
+
+
+
+#シーン内にあるコレクションを調べてコレクションやオブジェクトを所有していないものを削除
+#何も含まれていないものを検索
+def remove_empty_collection():
+    noEmpty = False    
+    for c in bpy.data.collections:
+        if len(c.children) == 0  and len(c.objects) == 0:
+            bpy.data.collections.remove(c)
+            noEmpty = True
+    
+    if noEmpty:
+        remove_empty_collection()
+
+
+
+
 #ロケータに親子付けする
 #ロケータを作成してペアレント。ロケータがすでに存在していれば作成しない
 def parent_to_empty(current_scene_name , result):
@@ -43,11 +83,21 @@ def parent_to_empty(current_scene_name , result):
 #orgのモデルがコレクションに属していれば、そのコレクションも複製
 
 #コレクションが存在していて、かつ出力先にそのコレクションがない場合はエラーになる。その対処をする必要あり
+#モデルがマスターにある場合の処理が必要
+#create_collectionフラグ　新しくコレクションを作るかどうか。作らないならシーンのマスターコレクションにする
 def put_into_collection(current_scene_name , result ,scn):
+    props = bpy.context.scene.kiatools_oa
     new_name = current_scene_name + '_collection'
 
+    if not props.create_collection:
+        col = scn.collection
+        for dat in result:
+            col.objects.link(dat.obj)
+        return
+
+    print(bpy.context.scene.collection.children.keys())
     #コレクションが存在していればそのまま使用、なければ新規作成
-    if new_name in bpy.context.scene.collection.children.keys():
+    if new_name in scn.collection.children.keys():
         col = scn.collection.children[new_name]
 
     else:
@@ -55,10 +105,10 @@ def put_into_collection(current_scene_name , result ,scn):
         scn.collection.children.link(col)
 
     for dat in result:
-
         #所属していたコレクションがマスターでないなら
         # 'A_' + コレクション名  というコレクションに移動
 
+        print(dat.colname)
         if dat.colname != 'Master Collection':
             new_name =  'A_' + dat.colname
 
@@ -250,123 +300,161 @@ def apply_model_modifier(dat):
 
 
 
-class PublishedData:
-    obj = None
-    colname = ''
-    mirror = False
-    def __init__(self ,  obj , colname , mirror):
-        self.obj = obj
-        self.colname = colname
-        self.mirror = mirror
+def move_to_other_scene():
+    props = bpy.context.scene.kiatools_oa
+    target = props.target_scene_name
 
+    current = bpy.context.window.scene.name
+
+    result = []
+    for ob in utils.selected():
+        col = ob.users_collection[0]
+        result.append(PublishedData(ob , col.name ,False))
+
+        col.objects.unlink(ob)
+    
+    put_into_collection(current , result ,bpy.data.scenes[target])
+    scene.set_current()
+    utils.sceneActive(target)
+
+
+def apply_collection():
+    props = bpy.context.scene.kiatools_oa
+    current_scene_name = bpy.context.scene.name
+    fix_scene = props.target_scene_name
+
+
+    #コレクションに含まれているオブジェクトを取得
+    #コレクションの子供コレクションを再帰的に調べて全部取得する
+    collections.clear()
+    bpy.ops.object.select_all(action='DESELECT') 
+    collection = bpy.context.view_layer.active_layer_collection 
+    get_obj_from_collection( collection )
+    collection_name = collection.name
+
+    new_name = collection_name + '_orgc'
+
+
+    #選択されたコレクションにリンクされたオブジェクトを取得
+    for ob in bpy.context.scene.objects: 
+        if ob.users_collection[0].name in collections: 
+            utils.select(ob,True)
+
+    result = []
+    sel = bpy.context.selected_objects
+
+    #apply対象はメッシュかカーブ。それ以外は除外する
+    for ob in sel:
+        if ob.type == 'MESH' or ob.type == 'CURVE':
+            #new_name = ob.name + '_tmp'
+            result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
+            print( ob.name)
+
+    bpy.ops.object.select_all(action='DESELECT') 
+
+    for dat in result:
+            apply_model_modifier(dat)
+    
+
+    for dat in result:
+        utils.sceneUnlink(dat.obj)
+
+    scn = utils.sceneActive(fix_scene)
+
+    #コレクションにまとめる
+    put_into_collection(current_scene_name , result , scn)
+
+    #強制的にマージする
+    utils.deselectAll()
+    for dat in result:
+        utils.select(dat.obj,True)
+
+    utils.activeObj(result[0].obj)
+    bpy.ops.object.join()
+
+    result[0].obj.name = new_name
 
 
 #Operator--------------------------------------------------------------------------
-
 #ニューシーンを作る
 #将来的にはダイアログを出して名前を指定できるようにする
 #class KIATOOLS_OT_new_scene(bpy.types.Operator):
 
 
 
-#選択モデルをリスト選択されたシーンに移動
-class KIATOOLS_OT_move_model(bpy.types.Operator):
-    """選択したモデルをリスト選択されたシーンに移動する"""
-    bl_idname = "kiatools.move_model"
-    bl_label = "move model"
-
-    def execute(self, context):
-        props = bpy.context.scene.kiatools_oa
-        target = props.target_scene_name
-
-        current = bpy.context.window.scene.name
-
-        result = []
-        for ob in utils.selected():
-            col = ob.users_collection[0]
-            result.append(PublishedData(ob , col.name ,False))
-
-            col.objects.unlink(ob)
-        
-        put_into_collection(current , result ,bpy.data.scenes[target])
-        scene.set_current()
-
-        return {'FINISHED'}
-
-
 #選択したコレクションに含まれたモデルを対象に
 #出力名にコレクション名を付ける
 #末尾にorgcを付ける
-class KIATOOLS_OT_apply_collection(bpy.types.Operator):
-    """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
-    bl_idname = "kiatools.apply_collection"
-    bl_label = "col"
+# class KIATOOLS_OT_apply_collection(bpy.types.Operator):
+#     """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
+#     bl_idname = "kiatools.apply_collection"
+#     bl_label = "col"
 
-    collections = set()
+#     collections = set()
 
-    def get_obj_from_collection(self,x):
-        self.collections.add(x.name)
-        for col in x.children.keys():
-            self.get_obj_from_collection(x.children[col])
+#     def get_obj_from_collection(self,x):
+#         self.collections.add(x.name)
+#         for col in x.children.keys():
+#             self.get_obj_from_collection(x.children[col])
 
-    def execute(self, context):
+#     def execute(self, context):
 
-        props = bpy.context.scene.kiatools_oa
-        current_scene_name = bpy.context.scene.name
-        fix_scene = props.target_scene_name
-
-
-        #コレクションに含まれているオブジェクトを取得
-        #コレクションの子供コレクションを再帰的に調べて全部取得する
-        self.collections.clear()
-        bpy.ops.object.select_all(action='DESELECT') 
-        collection = bpy.context.view_layer.active_layer_collection 
-        self.get_obj_from_collection( collection )
-        collection_name = collection.name
-
-        new_name = collection_name + '_orgc'
+#         props = bpy.context.scene.kiatools_oa
+#         current_scene_name = bpy.context.scene.name
+#         fix_scene = props.target_scene_name
 
 
-        #選択されたコレクションにリンクされたオブジェクトを取得
-        for ob in bpy.context.scene.objects: 
-            if ob.users_collection[0].name in self.collections: 
-                utils.select(ob,True)
+#         #コレクションに含まれているオブジェクトを取得
+#         #コレクションの子供コレクションを再帰的に調べて全部取得する
+#         self.collections.clear()
+#         bpy.ops.object.select_all(action='DESELECT') 
+#         collection = bpy.context.view_layer.active_layer_collection 
+#         self.get_obj_from_collection( collection )
+#         collection_name = collection.name
 
-        result = []
-        sel = bpy.context.selected_objects
+#         new_name = collection_name + '_orgc'
 
-        #apply対象はメッシュかカーブ。それ以外は除外する
-        for ob in sel:
-            if ob.type == 'MESH' or ob.type == 'CURVE':
-                #new_name = ob.name + '_tmp'
-                result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
-                print( ob.name)
 
-        bpy.ops.object.select_all(action='DESELECT') 
+#         #選択されたコレクションにリンクされたオブジェクトを取得
+#         for ob in bpy.context.scene.objects: 
+#             if ob.users_collection[0].name in self.collections: 
+#                 utils.select(ob,True)
 
-        for dat in result:
-                apply_model_modifier(dat)
+#         result = []
+#         sel = bpy.context.selected_objects
+
+#         #apply対象はメッシュかカーブ。それ以外は除外する
+#         for ob in sel:
+#             if ob.type == 'MESH' or ob.type == 'CURVE':
+#                 #new_name = ob.name + '_tmp'
+#                 result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
+#                 print( ob.name)
+
+#         bpy.ops.object.select_all(action='DESELECT') 
+
+#         for dat in result:
+#                 apply_model_modifier(dat)
         
 
-        for dat in result:
-            utils.sceneUnlink(dat.obj)
+#         for dat in result:
+#             utils.sceneUnlink(dat.obj)
 
-        scn = utils.sceneActive(fix_scene)
+#         scn = utils.sceneActive(fix_scene)
 
-        #コレクションにまとめる
-        put_into_collection(current_scene_name , result , scn)
+#         #コレクションにまとめる
+#         put_into_collection(current_scene_name , result , scn)
 
-        #強制的にマージする
-        utils.deselectAll()
-        for dat in result:
-            utils.select(dat.obj,True)
+#         #強制的にマージする
+#         utils.deselectAll()
+#         for dat in result:
+#             utils.select(dat.obj,True)
 
-        utils.activeObj(result[0].obj)
-        bpy.ops.object.join()
+#         utils.activeObj(result[0].obj)
+#         bpy.ops.object.join()
 
-        result[0].obj.name = new_name
+#         result[0].obj.name = new_name
 
-        return {'FINISHED'}
+#         return {'FINISHED'}
 
 
 
@@ -555,8 +643,7 @@ class KIATOOLS_OT_apply_particle_instance(bpy.types.Operator):
 classes = (
     KIATOOLS_OT_apply_model,
     KIATOOLS_OT_apply_particle_instance,
-    KIATOOLS_OT_move_model,
-    KIATOOLS_OT_apply_collection,
+    #KIATOOLS_OT_apply_collection,
 )
 
 def register():

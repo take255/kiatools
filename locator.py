@@ -146,3 +146,39 @@ def group():
 
     for obj in selected:
         obj.parent = empty
+
+
+def preserve_child():
+    selected = utils.selected()
+
+    for obj in selected:
+        #一時的に退避するロケータを作成
+        name = '%s_temp' % obj.name
+        bpy.ops.object.empty_add(type='PLAIN_AXES')
+        empty = utils.getActiveObj()
+        empty.name = name
+        for child in obj.children:
+            m = child.matrix_world
+            child.parent = empty
+            child.matrix_world = m
+
+    utils.multiSelection(selected)    
+
+
+def restore_child():
+    selected = utils.selected()
+    objects = bpy.context.scene.objects
+
+    #selected = bpy.context.selected_objects
+    for obj in selected:
+        #一時的に退避するロケータを作成
+        tmpname = '%s_temp' % obj.name
+        
+        for child in objects[tmpname].children:
+            m = child.matrix_world
+            child.parent = obj
+            child.matrix_world = m
+
+        utils.delete(objects[tmpname])
+
+    utils.multiSelection(selected)         

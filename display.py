@@ -17,6 +17,23 @@ def get_constraint_status():
 
     props.const_bool = status
 
+
+def collection_hide():
+    selected = utils.selected()
+    
+    for ob in selected:
+        for col in ob.users_collection:
+            col.hide_viewport = True
+
+
+def preserve_collections():
+    props = bpy.context.scene.kiatools_oa
+    props.displayed_allcollections.clear()
+
+    for col in bpy.context.scene.collection.children:            
+        if bpy.context.window.view_layer.layer_collection.children[col.name].exclude == False:
+                props.displayed_allcollections.add().name = col.name
+
 # #所属しているコレクションの状態を取得
 # def get_collection_status():
 
@@ -69,7 +86,8 @@ def tgl_constraint(self,context):
                 utils.select(ob,True)
             #children.append(ob) 
         
-    bpy.ops.view3d.view_selected(use_all_regions = False)
+    if props.focus_bool:
+        bpy.ops.view3d.view_selected(use_all_regions = False)
 
     #utils.deselectAll()
     utils.multiSelection(selected)
@@ -106,8 +124,8 @@ def tgl_child(self,context):
             if isParent(ob , selected): 
                 utils.selectByName(ob,True)
 
-    
-    bpy.ops.view3d.view_selected(use_all_regions = False)
+    if props.focus_bool:
+        bpy.ops.view3d.view_selected(use_all_regions = False)
     utils.deselectAll()
     utils.multiSelection(selected)
 

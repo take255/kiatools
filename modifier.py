@@ -4,7 +4,13 @@ import imp
 from . import utils
 imp.reload(utils)
 
-TYPE = ( ('LATTICE','LATTICE','') , ('SHRINKWRAP','SHRINKWRAP','') , ('CURVE','CURVE',''))
+TYPE = (
+('LATTICE','LATTICE','') ,
+('SHRINKWRAP','SHRINKWRAP','') ,
+('CURVE','CURVE','') ,
+('ARRAY','ARRAY',''),
+('BOOLEAN','BOOLEAN',''),
+)
 
 #モディファイヤのパラメータ値を取得
 def get_param():
@@ -76,29 +82,34 @@ def apply(self,context):
         if mod.type == 'SHRINKWRAP':
             mod.offset = props.shrinkwrap_offset
 
-
+#モディファイヤにターゲットを割り当てる場合とそれ以外で分ける
 def assign():
     props = bpy.context.scene.kiatools_oa    
     modtype = props.modifier_type
 
     sel = bpy.context.selected_objects
     active = utils.getActiveObj()
-
     result = []
-    for obj in sel:
-        if obj != active:
+
+    if modtype in ('LATTICE','CURVE','SHRINKWRAP','BOOLEAN'):
+        #2node
+        for obj in sel:
+            if obj != active:
+                result.append(obj)
+                m = obj.modifiers.new( modtype , type = modtype )
+
+                if modtype == 'LATTICE' or modtype == 'CURVE' or modtype == 'BOOLEAN':
+                    m.object = active
+
+                elif modtype == 'SHRINKWRAP':
+                    m.target = active
+    
+    else:
+        for obj in sel:
             result.append(obj)
-            m = obj.modifiers.new( modtype , type = modtype )
-
-            if modtype == 'LATTICE' or modtype == 'CURVE':
-                m.object = active
-
-            elif modtype == 'SHRINKWRAP':
-                m.target = active
+            obj.modifiers.new( modtype , type = modtype )
 
 
-    # bpy.ops.object.mode_set(mode='OBJECT')
-    # bpy.ops.object.select_all(action='DESELECT')
     utils.mode_o()
     utils.deselectAll()
 
@@ -114,9 +125,41 @@ def show(status):
     sel = utils.selected()
     active = utils.getActiveObj()
 
-    result = []
     for obj in sel:
         for mod in obj.modifiers:        
             
             if modtype == mod.type:
                 mod.show_viewport = status
+
+
+def apply_mod():
+    props = bpy.context.scene.kiatools_oa    
+    modtype = props.modifier_type
+
+    sel = utils.selected()
+    #active = utils.getActiveObj()
+
+    for obj in sel:
+        utils.activeObj(obj)
+        for mod in obj.modifiers:                    
+            if modtype == mod.type:
+                bpy.ops.object.modifier_apply( modifier = mod.name )
+
+
+#選択したモデルのモディファイヤカーブのカーブ選択。
+def select_curve():
+    sel = bpy.context.selected_objects
+    utils.deselectAll()
+
+    curve = []
+    for ob in sel:
+        for i, mod in enumerate(ob.modifiers):
+            if mod.type == 'CURVE':
+                curve.append(mod.object)
+
+    for obj in curve:
+        utils.select(obj,True)
+        utils.activeObj(obj)
+
+    utils.mode_e()
+    
