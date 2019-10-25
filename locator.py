@@ -7,17 +7,16 @@ from mathutils import ( Matrix , Vector )
 from . import utils
 imp.reload(utils)
 
-
-
+#---------------------------------------------------------------------------------------
 #モデルに位置にロケータを配置してコンストレインする。
 #中間にロケータをかます。親のロケータの形状をsphereにする。
 #モデルのトランスフォームは初期値にする
 #ロケータを '09_ConstRoot'　に入れる
+#---------------------------------------------------------------------------------------
 
-
-
-
+#---------------------------------------------------------------------------------------
 #オブジェクトをコレクションに移動
+#---------------------------------------------------------------------------------------
 def move_collection( ob , col ):
     collections = ob.users_collection
     for c in collections:
@@ -26,6 +25,7 @@ def move_collection( ob , col ):
     col.objects.link(ob)
 
 
+#---------------------------------------------------------------------------------------
 def create_locator_collection():
     scn = bpy.context.scene
     colname = '09_ConstRoot'
@@ -39,6 +39,7 @@ def create_locator_collection():
     return col
 
 
+#---------------------------------------------------------------------------------------
 def create_locator(name , matrix):
 
     col = create_locator_collection()
@@ -67,9 +68,10 @@ def create_locator(name , matrix):
 
     return empty_p
 
-
+#---------------------------------------------------------------------------------------
 #replace : オブジェクトをロケータの子供にして扱いやすくする
 #選択モデルをロケータに親子付けをしてコンストレイン。
+#---------------------------------------------------------------------------------------
 def replace():
     selected = utils.selected()
     
@@ -80,8 +82,10 @@ def replace():
         obj.parent = empty_p
 
 
+#---------------------------------------------------------------------------------------
 #エディットモードで選択したフェースのノーマルを基準にロケータを生成する
 #法線方向が(0,0,1)の時は例外処理する必要あり。内積をとって判定。
+#---------------------------------------------------------------------------------------
 def replace_facenormal():
 
     obj = bpy.context.edit_object
@@ -132,8 +136,10 @@ def replace_facenormal():
     
     obj.parent = empty_p
 
+#---------------------------------------------------------------------------------------
 #選択したモデルをロケータでまとめる
 #アクティブなモデルの名前を継承する
+#---------------------------------------------------------------------------------------
 def group():
     selected = utils.selected()
     act = utils.getActiveObj()
@@ -148,6 +154,7 @@ def group():
         obj.parent = empty
 
 
+#---------------------------------------------------------------------------------------
 def preserve_child():
     selected = utils.selected()
 
@@ -165,6 +172,7 @@ def preserve_child():
     utils.multiSelection(selected)    
 
 
+#---------------------------------------------------------------------------------------
 def restore_child():
     selected = utils.selected()
     objects = bpy.context.scene.objects
@@ -181,4 +189,6 @@ def restore_child():
 
         utils.delete(objects[tmpname])
 
-    utils.multiSelection(selected)         
+    utils.multiSelection(selected) 
+
+

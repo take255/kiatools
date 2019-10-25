@@ -33,20 +33,20 @@ class PublishedData:
         self.mirror = mirror
 
 
+#---------------------------------------------------------------------------------------
 #コレクションに含まれているコレクションを取得
 #コレクションの子供コレクションを再帰的に調べて全部取得する
+#---------------------------------------------------------------------------------------
 def get_obj_from_collection(x):
     collections.add(x.name)
-    # print(x.name,x.children , len(x.children))
-    # if len(x.children) == 0:
-    #     collections_no_children.add(x.name)
     for col in x.children.keys():
         get_obj_from_collection(x.children[col])
 
 
-
+#---------------------------------------------------------------------------------------
 #シーン内にあるコレクションを調べてコレクションやオブジェクトを所有していないものを削除
 #何も含まれていないものを検索
+#---------------------------------------------------------------------------------------
 def remove_empty_collection():
     noEmpty = False    
     for c in bpy.data.collections:
@@ -58,10 +58,10 @@ def remove_empty_collection():
         remove_empty_collection()
 
 
-
-
+#---------------------------------------------------------------------------------------
 #ロケータに親子付けする
 #ロケータを作成してペアレント。ロケータがすでに存在していれば作成しない
+#---------------------------------------------------------------------------------------
 def parent_to_empty(current_scene_name , result):
 
     new_name = current_scene_name + '_parent'
@@ -79,12 +79,14 @@ def parent_to_empty(current_scene_name , result):
         obj.parent = empty
 
 
+#---------------------------------------------------------------------------------------
 #パブリッシュ時にコレクションにまとめる
 #orgのモデルがコレクションに属していれば、そのコレクションも複製
 
 #コレクションが存在していて、かつ出力先にそのコレクションがない場合はエラーになる。その対処をする必要あり
 #モデルがマスターにある場合の処理が必要
 #create_collectionフラグ　新しくコレクションを作るかどうか。作らないならシーンのマスターコレクションにする
+#---------------------------------------------------------------------------------------
 def put_into_collection(current_scene_name , result ,scn):
     props = bpy.context.scene.kiatools_oa
     new_name = current_scene_name + '_collection'
@@ -95,7 +97,6 @@ def put_into_collection(current_scene_name , result ,scn):
             col.objects.link(dat.obj)
         return
 
-    print(bpy.context.scene.collection.children.keys())
     #コレクションが存在していればそのまま使用、なければ新規作成
     if new_name in scn.collection.children.keys():
         col = scn.collection.children[new_name]
@@ -121,9 +122,10 @@ def put_into_collection(current_scene_name , result ,scn):
         else:
             col.objects.link(dat.obj)
 
-
+#---------------------------------------------------------------------------------------
 #髪の毛のコンバート
 # #複数のヘアパーティクルがあることを想定
+#---------------------------------------------------------------------------------------
 def convert_hair(hairarray, new_name , ob):
 
     new_obj_array = []
@@ -189,6 +191,7 @@ def convert_hair(hairarray, new_name , ob):
     return new_obj_array
 
 
+#---------------------------------------------------------------------------------------
 def NewSceneName():
     num = bpy.context.scene.publishslot
     if num == 0:
@@ -199,9 +202,10 @@ def NewSceneName():
     return fix_scene
 
 
-
+#---------------------------------------------------------------------------------------
 #apply modelの第一段階
 #パーティクルをカーブ化する
+#---------------------------------------------------------------------------------------
 def apply_model_sortout(ob , new_name , isMirror):
 
     props = bpy.context.scene.kiatools_oa
@@ -257,9 +261,10 @@ def apply_model_sortout(ob , new_name , isMirror):
 
     return result
 
-
+#---------------------------------------------------------------------------------------
 #apply modelの第２段階
 #モディファイヤの処理
+#---------------------------------------------------------------------------------------
 def apply_model_modifier(dat): 
     props = bpy.context.scene.kiatools_oa
 
@@ -299,8 +304,10 @@ def apply_model_modifier(dat):
         bpy.ops.object.modifier_apply(modifier=mod.name)   
 
 
-
-def move_to_other_scene():
+#---------------------------------------------------------------------------------------
+#オブジェクトを別のシーンに移動
+#---------------------------------------------------------------------------------------
+def move_object_to_other_scene():
     props = bpy.context.scene.kiatools_oa
     target = props.target_scene_name
 
@@ -318,6 +325,31 @@ def move_to_other_scene():
     utils.sceneActive(target)
 
 
+#---------------------------------------------------------------------------------------
+#コレクションを別のシーンに移動
+#---------------------------------------------------------------------------------------
+def move_collection_to_other_scene():
+    props = bpy.context.scene.kiatools_oa
+    target = props.target_scene_name
+
+    current = bpy.context.window.scene.name
+    #collection = bpy.context.view_layer.collections.active
+    collection = bpy.context.view_layer.active_layer_collection 
+    #bpy.context.window.view_layer.layer_collection.children
+
+    c = bpy.data.collections[collection.name]
+
+    bpy.data.scenes[target].collection.children.link(c)
+    # bpy.data.scenes[target].collection.children.link(collection)
+    bpy.context.window.scene.collection.children.unlink(c)
+
+    utils.sceneActive(target)
+    scene.set_current()
+
+
+#---------------------------------------------------------------------------------------
+#コレクションに所属しているオブジェクトをapply
+#---------------------------------------------------------------------------------------
 def apply_collection():
     props = bpy.context.scene.kiatools_oa
     current_scene_name = bpy.context.scene.name
@@ -375,281 +407,165 @@ def apply_collection():
     result[0].obj.name = new_name
 
 
-#Operator--------------------------------------------------------------------------
-#ニューシーンを作る
-#将来的にはダイアログを出して名前を指定できるようにする
-#class KIATOOLS_OT_new_scene(bpy.types.Operator):
+
+#モデル名に_orgをつけてそれを作業用のモデルとする。
+def model_org():
+    props = bpy.context.scene.kiatools_oa
+    merge = props.merge_apply
+
+    current_scene_name = bpy.context.scene.name
+    fix_scene = props.target_scene_name
 
 
+    if bpy.data.scenes.get(fix_scene) is None:
+        print(u'Not found Scene')
+        return
 
-#選択したコレクションに含まれたモデルを対象に
-#出力名にコレクション名を付ける
-#末尾にorgcを付ける
-# class KIATOOLS_OT_apply_collection(bpy.types.Operator):
-#     """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
-#     bl_idname = "kiatools.apply_collection"
-#     bl_label = "col"
+    #scn = bpy.context.scene
+    sel = bpy.context.selected_objects
+    #scene_obj = bpy.context.scene.objects
+    
+    result = []
+    for ob in sel:
+        isOrg = False
+        isMirror = False
+        #isHair = False
 
-#     collections = set()
+        print(ob.name)
+        name = ob.name
+        #col_name = ob.users_collection[0].name #現在所属しているコレクションを保持しておく
 
-#     def get_obj_from_collection(self,x):
-#         self.collections.add(x.name)
-#         for col in x.children.keys():
-#             self.get_obj_from_collection(x.children[col])
-
-#     def execute(self, context):
-
-#         props = bpy.context.scene.kiatools_oa
-#         current_scene_name = bpy.context.scene.name
-#         fix_scene = props.target_scene_name
-
-
-#         #コレクションに含まれているオブジェクトを取得
-#         #コレクションの子供コレクションを再帰的に調べて全部取得する
-#         self.collections.clear()
-#         bpy.ops.object.select_all(action='DESELECT') 
-#         collection = bpy.context.view_layer.active_layer_collection 
-#         self.get_obj_from_collection( collection )
-#         collection_name = collection.name
-
-#         new_name = collection_name + '_orgc'
+        #objの末尾に_orgがついていなければスルー
+        if name[-3:] == 'org':
+            new_name = name.replace('_org','')
+            isOrg = True
 
 
-#         #選択されたコレクションにリンクされたオブジェクトを取得
-#         for ob in bpy.context.scene.objects: 
-#             if ob.users_collection[0].name in self.collections: 
-#                 utils.select(ob,True)
+        if name[-4:] == 'orgm':
+            new_name = name.replace('_orgm','')
+            isOrg = True
+            isMirror = True
 
-#         result = []
-#         sel = bpy.context.selected_objects
+        if isOrg:
+            result.append( apply_model_sortout(ob , new_name , isMirror) )
 
-#         #apply対象はメッシュかカーブ。それ以外は除外する
-#         for ob in sel:
-#             if ob.type == 'MESH' or ob.type == 'CURVE':
-#                 #new_name = ob.name + '_tmp'
-#                 result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
-#                 print( ob.name)
+    bpy.ops.object.select_all(action='DESELECT')
 
-#         bpy.ops.object.select_all(action='DESELECT') 
-
-#         for dat in result:
-#                 apply_model_modifier(dat)
-        
-
-#         for dat in result:
-#             utils.sceneUnlink(dat.obj)
-
-#         scn = utils.sceneActive(fix_scene)
-
-#         #コレクションにまとめる
-#         put_into_collection(current_scene_name , result , scn)
-
-#         #強制的にマージする
-#         utils.deselectAll()
-#         for dat in result:
-#             utils.select(dat.obj,True)
-
-#         utils.activeObj(result[0].obj)
-#         bpy.ops.object.join()
-
-#         result[0].obj.name = new_name
-
-#         return {'FINISHED'}
+    for dat in result:
+        apply_model_modifier(dat)
 
 
+    #シーンごとのコレクションにまとめるので下記は不要。
+    # この行を有効にすると親のコレクションにも含まれてしまい2重に表示されてしまう。
+    #bpy.ops.object.make_links_scene(scene = fix_scene)
+    
+    for dat in result:
+        utils.sceneUnlink(dat.obj)
 
-#モデル名に_orgをつけてそれを作業用のモデルとする。Fix_Scnというシーンにリンクする。
-#ヘアーパーティクルも対象とする機能を追加
-#木などパーティクルインスタンスがついているがアプライ時に削除したいときパーティクルモディファイヤを削除　
-class KIATOOLS_OT_apply_model(bpy.types.Operator):
-    """名前の末尾にorgがついたモデルが対象\nモディファイアフリーズ＞_orgを削除したモデルを複製＞選択シーンににリンク"""
-    bl_idname = "kiatools.apply_model"
-    bl_label = "org"
+    #パブリッシュシーンをアクティブに
+    scn = utils.sceneActive(fix_scene)
 
-    def execute(self, context):
+    #親子付けをする場合（現状はオミット）
+    #parent_to_empty(current_scene_name , result)
 
-        props = bpy.context.scene.kiatools_oa
-        merge = props.merge_apply
+    #コレクションにまとめる
+    put_into_collection(current_scene_name , result , scn)
 
-        # if props.merge_apply:
-        #     merge = True
-
-        current_scene_name = bpy.context.scene.name
-        fix_scene = props.target_scene_name
-
-
-        if bpy.data.scenes.get(fix_scene) is None:
-            print(u'Not found Scene')
-            return {'FINISHED'}
-
-        #scn = bpy.context.scene
-        sel = bpy.context.selected_objects
-        #scene_obj = bpy.context.scene.objects
-        
-        result = []
-        for ob in sel:
-            isOrg = False
-            isMirror = False
-            #isHair = False
-
-            print(ob.name)
-            name = ob.name
-            #col_name = ob.users_collection[0].name #現在所属しているコレクションを保持しておく
-
-            #objの末尾に_orgがついていなければスルー
-            if name[-3:] == 'org':
-                new_name = name.replace('_org','')
-                isOrg = True
-
-
-            if name[-4:] == 'orgm':
-                new_name = name.replace('_orgm','')
-                isOrg = True
-                isMirror = True
-
-            if isOrg:
-                result.append( apply_model_sortout(ob , new_name , isMirror) )
-
-        bpy.ops.object.select_all(action='DESELECT')
-
+    #マージする
+    if merge:
+        utils.deselectAll()
         for dat in result:
-            apply_model_modifier(dat)
+            utils.select(dat.obj,True)
 
 
-        #シーンごとのコレクションにまとめるので下記は不要。
-        # この行を有効にすると親のコレクションにも含まれてしまい2重に表示されてしまう。
-        #bpy.ops.object.make_links_scene(scene = fix_scene)
-        
-        for dat in result:
-            utils.sceneUnlink(dat.obj)
+        utils.activeObj(result[0].obj)
+        bpy.ops.object.join()
+    
+    scene.set_current()
 
-        #パブリッシュシーンをアクティブに
-        scn = utils.sceneActive(fix_scene)
-
-        #親子付けをする場合（現状はオミット）
-        #parent_to_empty(current_scene_name , result)
-
-        #コレクションにまとめる
-        put_into_collection(current_scene_name , result , scn)
-
-        #マージする
-        if merge:
-            utils.deselectAll()
-            for dat in result:
-                utils.select(dat.obj,True)
-
-
-            utils.activeObj(result[0].obj)
-            bpy.ops.object.join()
-        
-
-        return {'FINISHED'}
 
 
 #パーティクルインスタンスのApply
-class KIATOOLS_OT_apply_particle_instance(bpy.types.Operator):
-    """パーティクルインスタンスを実体化して1つのモデルに集約"""
-    bl_idname = "kiatools.apply_particle_instance"
-    bl_label = "particle to model"
+def particle_instance():
+    scn = bpy.context.scene
+    current_scene_name = bpy.context.scene.name
 
-    def execute(self, context):
-        scn = bpy.context.scene
-        current_scene_name = bpy.context.scene.name
+    fix_scene = NewSceneName()
+    if bpy.data.scenes.get(fix_scene) is None:
+        print(u'Not found Scene')
+        return
 
-        fix_scene = NewSceneName()
-        if bpy.data.scenes.get(fix_scene) is None:
-            print(u'Not found Scene')
-            return {'FINISHED'}
+    sel = bpy.context.selected_objects
+    objs = bpy.data.objects
 
-        sel = bpy.context.selected_objects
-        objs = bpy.data.objects
+    result = []
+    for ob in sel:
+        name = ob.name
+        current_col = ob.users_collection[0] #現在所属しているコレクションを保持しておく
+        col_name = current_col.name
 
-        result = []
-        for ob in sel:
-            name = ob.name
-            current_col = ob.users_collection[0] #現在所属しているコレクションを保持しておく
-            col_name = current_col.name
+        #一時的なコレクションを用意
+        tmp_col_name = 'tmpcollection_apply_particleinstance'
 
-            #一時的なコレクションを用意
-            tmp_col_name = 'tmpcollection_apply_particleinstance'
+        tmp_col = bpy.data.collections.new(tmp_col_name)
+        scn.collection.children.link(tmp_col)
 
-            tmp_col = bpy.data.collections.new(tmp_col_name)
-            scn.collection.children.link(tmp_col)
+        tmp_col.objects.link(ob)
+        current_col.objects.unlink(ob)
 
-            tmp_col.objects.link(ob)
-            current_col.objects.unlink(ob)
+        utils.activeObj(ob)
 
-            utils.activeObj(ob)
-
-            bpy.ops.object.duplicates_make_real()
+        bpy.ops.object.duplicates_make_real()
 
 
-            #オブジェクトの選択をクリア
-            bpy.ops.object.select_all(action='DESELECT') 
+        #オブジェクトの選択をクリア
+        bpy.ops.object.select_all(action='DESELECT') 
 
-            #選択されたコレクションにリンクされたオブジェクトを取得
-            for ob0 in bpy.context.scene.objects: 
-                if ob0.users_collection[0].name == tmp_col_name: 
-                    utils.select(ob0,True)
+        #選択されたコレクションにリンクされたオブジェクトを取得
+        for ob0 in bpy.context.scene.objects: 
+            if ob0.users_collection[0].name == tmp_col_name: 
+                utils.select(ob0,True)
 
-            #自分自身は選択解除
-            utils.select(ob,False)
+        #自分自身は選択解除
+        utils.select(ob,False)
 
-            #空のメッシュオブジェクト作成
-            mesh = bpy.data.meshes.new("mesh")  # add a new mesh
-            empty_mesh = bpy.data.objects.new("Merged_Instance", mesh)  # add a new object using the mesh
-            tmp_col.objects.link(empty_mesh)
+        #空のメッシュオブジェクト作成
+        mesh = bpy.data.meshes.new("mesh")  # add a new mesh
+        empty_mesh = bpy.data.objects.new("Merged_Instance", mesh)  # add a new object using the mesh
+        tmp_col.objects.link(empty_mesh)
 
-            utils.select(empty_mesh,True)
-            utils.activeObj(empty_mesh)
-
-
-            #メッシュをマージ
-            bpy.ops.object.join()
-
-            #後片付け
-            #元のモデルとマージされたオブジェクトをもとのコレクションにリンク
-            # tempコレクションからアンリンク
-            # tempコレクション削除：
-            # for ob0 in ( ob , empty_mesh ):
-            #     tmp_col.objects.unlink(ob0)
-            #     current_col.objects.link(ob0)
+        utils.select(empty_mesh,True)
+        utils.activeObj(empty_mesh)
 
 
-            tmp_col.objects.unlink(ob)
-            current_col.objects.link(ob)
+        #メッシュをマージ
+        bpy.ops.object.join()
 
-            tmp_col.objects.unlink(empty_mesh)
-            #current_col.objects.link(empty_mesh)
+        #後片付け
+        #元のモデルとマージされたオブジェクトをもとのコレクションにリンク
+        # tempコレクションからアンリンク
+        # tempコレクション削除：
+        # for ob0 in ( ob , empty_mesh ):
+        #     tmp_col.objects.unlink(ob0)
+        #     current_col.objects.link(ob0)
+
+
+        tmp_col.objects.unlink(ob)
+        current_col.objects.link(ob)
+
+        tmp_col.objects.unlink(empty_mesh)
+        #current_col.objects.link(empty_mesh)
 
 
 
-            bpy.data.collections.remove(tmp_col)
+        bpy.data.collections.remove(tmp_col)
 
-            result.append(PublishedData(empty_mesh , col_name,mirror))
-
-
-        #パブリッシュシーンをアクティブに
-        scn = utils.sceneActive(fix_scene)
-        
-        #コレクションにまとめる
-        put_into_collection(current_scene_name , result , scn)
-
-        return {'FINISHED'}
+        result.append(PublishedData(empty_mesh , col_name,mirror))
 
 
-
-
-classes = (
-    KIATOOLS_OT_apply_model,
-    KIATOOLS_OT_apply_particle_instance,
-    #KIATOOLS_OT_apply_collection,
-)
-
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-
-def unregister():
-    for cls in classes:
-        bpy.utils.unregister_class(cls)
+    #パブリッシュシーンをアクティブに
+    scn = utils.sceneActive(fix_scene)
+    
+    #コレクションにまとめる
+    put_into_collection(current_scene_name , result , scn)
+    scene.set_current()

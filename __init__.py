@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import ( PropertyGroup , Panel)
-from bpy.app.handlers import persistent
+#from bpy.app.handlers import persistent
 import imp
 
 from bpy.props import(
@@ -17,20 +17,20 @@ from . import utils
 from . import modifier
 from . import display
 from . import apply
-#from . import modeling
 from . import curve
 from . import scene
 from . import constraint
+from . import locator
 
 
 imp.reload(utils)
 imp.reload(modifier)
 imp.reload(display)
 imp.reload(apply)
-#imp.reload(modeling)
 imp.reload(curve)
 imp.reload(scene)
 imp.reload(constraint)
+imp.reload(locator)
 
 
 bl_info = {
@@ -42,34 +42,9 @@ bl_info = {
 "category": "Object"}
 
 
-@persistent
-def kiatools_handler(scene):
-    # props = bpy.context.scene.kiatools_oa
-
-    # #モディファイヤメニューから選択されたときの処理
-    # if props.modifier_selected  != props.modifier_type:
-    #     modtype = props.modifier_type
-    #     props.modifier_selected = props.modifier_type
-    #     act = utils.getActiveObj()
-
-    #     for mod in act.modifiers:        
-    #         if modtype == mod.type:
-    #             print(modtype)    
-    
-    # bpy.context.window.scene = bpy.data.scenes[scene]
-    # #set_current_scene()    
-    # print('----------------------------')
-    # print(scene)
-    # print('----------------------------')
-    # #props = bpy.context.scene.kiatools_oa
-    # props.allscene.clear()        
-    # for scn in bpy.data.scenes:
-    #     props.allscene.add().name = scn.name
-
-    # print(scene)
-    # print('----------------------------')
-    # bpy.context.scene.kiatools_oa.prop = scene
-    pass
+# @persistent
+# def kiatools_handler(scene):
+#     pass
 
 
 #シーンを追加したとき、それぞれのシーンにあるシーンリストを更新してあげる必要がある
@@ -105,7 +80,7 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     merge_apply : BoolProperty(name="merge" ,  default = True)
     create_collection : BoolProperty(name="create collection" ,  default = False)
 
-    #シーン名 currentsceneに現在のシーン名を保存しておき、
+    #シーン名
     scene_name : StringProperty(name="Scene", maxlen=63 ,update = go_scene)
     allscene : CollectionProperty(type=PropertyGroup)
 
@@ -148,7 +123,10 @@ class KIATOOLS_Props_OA(bpy.types.PropertyGroup):
     const_type : EnumProperty(items = constraint.TYPE , name = 'constraint' )
 
 
-#UI---------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------
+#UI
+#---------------------------------------------------------------------------------------
+
 class KIATOOLS_MT_toolPanel(utils.panel):   
     bl_label ='KIAtools'
     def draw(self, context):
@@ -211,10 +189,16 @@ class KIATOOLS_MT_kia_helper_tools(bpy.types.Operator):
         box2.operator( "kiatools.replace_locator_facenormal" , icon = 'MODIFIER')
         box2.operator( "kiatools.group" , icon = 'MODIFIER')
 
-        box3 = row.box()
+        col = row.column()
+        box3 = col.box()
         box3.label( text = 'child' )
         box3.operator( "kiatools.preserve_child" , icon = 'MODIFIER')
         box3.operator( "kiatools.restore_child" , icon = 'MODIFIER')
+
+        box3 = col.box()
+        box3.label( text = 'select' )
+        box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
+        
 
 
 
@@ -275,31 +259,8 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
         box = layout.box()
         box.label( text = 'constraint' )
-        #box.operator( "kiatools.const_add_copy_transform" , icon = 'MODIFIER')
         box.operator( "kiatools.constraint_asign" , icon = 'MODIFIER')
         box.prop(props, "const_type" , icon='RESTRICT_VIEW_OFF')
-
-
-        # box = layout.box()
-        # box.label( text = 'curve' )
-        # row = box.row()
-
-        # box1 = row.box()
-        # box1.label( text = 'create' )
-        # box1.operator( "kiatools.curve_create_with_bevel" , icon = 'MODIFIER')
-        # box1.operator( "kiatools.curve_create_liner" , icon = 'MODIFIER')
-
-
-        # box2 = row.box()
-        # box2.label( text = 'bevel' )
-        # box2.operator( "kiatools.curve_assign_bevel" , icon = 'MODIFIER')
-        # box2.operator( "kiatools.curve_assign_circle_bevel" , icon = 'MODIFIER')
-        # box2.operator( "kiatools.curve_assign_liner_bevel" , icon = 'MODIFIER')
-
-        # box3 = row.box()
-        # box3.label( text = 'select' )
-        # box3.operator( "kiatools.curve_select_bevel" , icon = 'MODIFIER')
-
 
 
 class KIATOOLS_MT_curvetools(bpy.types.Operator):
@@ -352,7 +313,6 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
 
 
     def draw(self, context):
-        #scn = context.scene
         props = bpy.context.scene.kiatools_oa
         layout=self.layout
 
@@ -363,24 +323,24 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
 
         row.prop_search(props, "scene_name", props, "allscene", icon='SCENE_DATA')
         row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
-
-
         box.operator("kiatools.remove_empty_collection" , icon = 'DUPLICATE')
 
-        #row.operator("kiatools.change_scene", icon = 'FILE_IMAGE')
 
         box = layout.row(align=False).box()
         row = box.row()
         box.prop_search(props, "target_scene_name", props, "target_allscene", icon='SCENE_DATA')
 
-        #row.operator("kiatools.set_apply_scene", icon='TRACKING_FORWARDS')
-        #row.prop(props, "applyscene" , icon='APPEND_BLEND')
 
         row = box.row()
+        row.label( text = 'apply' )
         row.operator("kiatools.apply_model" , icon='OBJECT_DATAMODE' )
         row.operator("kiatools.apply_collection" , icon='GROUP' )
         row.operator("kiatools.apply_particle_instance", icon='PARTICLES' )
-        row.operator("kiatools.move_model" , icon = 'DECORATE_DRIVER')
+
+        row = box.row()
+        row.label( text = 'move' )
+        row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE')
+        row.operator("kiatools.move_collection" , icon = 'GROUP')
         
 
 
@@ -400,10 +360,15 @@ class KIATOOLS_MT_object_applier(bpy.types.Operator):
         row = box.row()
         row.prop(props, "create_collection")
 
+#---------------------------------------------------------------------------------------
+#Operator
+#---------------------------------------------------------------------------------------
 
-#Operator--------------------------------------------------------------------
 
+#---------------------------------------------------------------------------------------
 #Curve Tool
+#---------------------------------------------------------------------------------------
+
 class KIATOOLS_OT_curve_create_with_bevel(bpy.types.Operator):
         """ベベル込みのカーブを作成する。"""
         bl_idname = "kiatools.curve_create_with_bevel"
@@ -460,7 +425,10 @@ class KIATOOLS_OT_curve_select_bevel(bpy.types.Operator):
             return {'FINISHED'}
 
 
-#Locator-------------------------------------------------------------------
+#---------------------------------------------------------------------------------------
+#Locator
+#---------------------------------------------------------------------------------------
+
 class KIATOOLS_OT_replace_locator(bpy.types.Operator):
     """モデルに位置にロケータを配置してコンストレインする。モデルのトランスフォームは初期値にする。"""
     bl_idname = "kiatools.replace_locator"
@@ -508,16 +476,45 @@ class KIATOOLS_OT_restore_child(bpy.types.Operator):
         locator.restore_child()
         return {'FINISHED'}
 
-#ObjectApplier-------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------
+#Select
+#---------------------------------------------------------------------------------------
+class KIATOOLS_OT_select_instance_collection(bpy.types.Operator):
+    """コレクションインスタンスから元のコレクションを選択する"""
+    bl_idname = "kiatools.select_instance_collection"
+    bl_label = "instance source"
+
+    def execute(self, context):
+        display.select_instance_collection()
+        return {'FINISHED'}
+
+
+#---------------------------------------------------------------------------------------
+#ObjectApplier
+#---------------------------------------------------------------------------------------
+
 #選択モデルをリスト選択されたシーンに移動
 class KIATOOLS_OT_move_model(bpy.types.Operator):
     """選択したモデルをリスト選択されたシーンに移動する"""
     bl_idname = "kiatools.move_model"
-    bl_label = "move model"
+    bl_label = "model"
 
     def execute(self, context):
-        apply.move_to_other_scene()
+        apply.move_object_to_other_scene()
         return {'FINISHED'}
+
+
+#選択コレクションをリスト選択されたシーンに移動
+class KIATOOLS_OT_move_collection(bpy.types.Operator):
+    """選択コレクションをリスト選択されたシーンに移動"""
+    bl_idname = "kiatools.move_collection"
+    bl_label = "collection"
+
+    def execute(self, context):
+        apply.move_collection_to_other_scene()
+        return {'FINISHED'}
+
 
 #空のコレクションを削除
 class KIATOOLS_OT_remove_empty_collection(bpy.types.Operator):
@@ -568,8 +565,32 @@ class KIATOOLS_MT_new_scene(bpy.types.Operator):
         scene.set_current()
         return {'FINISHED'}
 
+#パーティクルインスタンスのApply
+class KIATOOLS_OT_apply_particle_instance(bpy.types.Operator):
+    """パーティクルインスタンスを実体化して1つのモデルに集約"""
+    bl_idname = "kiatools.apply_particle_instance"
+    bl_label = "particle to model"
 
-#Modifier---------------------------------------------------------------------------------------
+    def execute(self, context):
+        apply.particle_instance()
+        return {'FINISHED'}
+
+#モデル名に_orgをつけてそれを作業用のモデルとする。
+class KIATOOLS_OT_apply_model(bpy.types.Operator):
+    """名前の末尾にorgがついたモデルが対象\nモディファイアフリーズ＞_orgを削除したモデルを複製＞選択シーンににリンク"""
+    bl_idname = "kiatools.apply_model"
+    bl_label = "org"
+
+    def execute(self, context):
+        apply.model_org()
+        return {'FINISHED'}
+
+
+
+#---------------------------------------------------------------------------------------
+#Modifier
+#---------------------------------------------------------------------------------------
+
 #二つのノードを選択してモディファイヤアサインと同時にターゲットを割り当てる
 #ターゲットモデルをアクティブとするので　モディファイヤをアサインしたいモデルをまず選択、最後にターゲットを選択する
 class KIATOOLS_OT_modifier_asign(bpy.types.Operator):
@@ -618,8 +639,9 @@ class KIATOOLS_OT_select_modifier_curve(bpy.types.Operator):
         modifier.select_curve()
         return {'FINISHED'}
 
-
-#Constraint---------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------
+#Constraint
+#---------------------------------------------------------------------------------------
 class KIATOOLS_OT_constraint_asign(bpy.types.Operator):
     """モディファイヤをアサインする"""
     bl_idname = "kiatools.constraint_asign"
@@ -629,7 +651,11 @@ class KIATOOLS_OT_constraint_asign(bpy.types.Operator):
         constraint.assign()
         return {'FINISHED'}
 
-#helper-------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------
+#helper
+#---------------------------------------------------------------------------------------
+
 #選択したモデルの所属するコレクションをハイド
 class KIATOOLS_OT_collections_hide(bpy.types.Operator):
     """選択したオブジェクトが属するコレクションをハイド"""
@@ -683,6 +709,7 @@ classes = (
     KIATOOLS_OT_collections_hide,
     KIATOOLS_OT_preserve_collections,
 
+    KIATOOLS_OT_select_instance_collection,
 
     KIATOOLS_OT_modifier_asign,
     KIATOOLS_OT_modifier_show,
@@ -692,11 +719,14 @@ classes = (
 
     KIATOOLS_OT_constraint_asign,
 
-
+    #object applier
     KIATOOLS_MT_new_scene,
     KIATOOLS_OT_move_model,
     KIATOOLS_OT_apply_collection,
-    KIATOOLS_OT_remove_empty_collection
+    KIATOOLS_OT_remove_empty_collection,
+    KIATOOLS_OT_apply_particle_instance,
+    KIATOOLS_OT_apply_model,
+    KIATOOLS_OT_move_collection
 
 )
 
@@ -706,10 +736,7 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.types.Scene.kiatools_oa = PointerProperty(type=KIATOOLS_Props_OA)
-
-    apply.register()
-    #modeling.register()
-    bpy.app.handlers.depsgraph_update_pre.append(kiatools_handler)
+    #bpy.app.handlers.depsgraph_update_pre.append(kiatools_handler)
 
 
 def unregister():
@@ -717,10 +744,7 @@ def unregister():
         bpy.utils.register_class(cls)
 
     del bpy.types.Scene.kiatools_oa
-
-    apply.unregister()
-    #modeling.unregister()
-    bpy.app.handlers.depsgraph_update_pre.remove(kiatools_handler)
+    #bpy.app.handlers.depsgraph_update_pre.remove(kiatools_handler)
 
 
 
