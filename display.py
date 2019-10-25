@@ -19,15 +19,18 @@ def get_constraint_status():
 
     props.const_bool = status
 
+
 #---------------------------------------------------------------------------------------
 #選択オブジェクトのコレクションをハイド
 #---------------------------------------------------------------------------------------
 def collection_hide():
     selected = utils.selected()
-    
+    layer = bpy.context.window.view_layer.layer_collection
+
     for ob in selected:
         for col in ob.users_collection:
-            col.hide_viewport = True
+            show_collection_by_name(layer ,col.name , True)
+            #col.hide_viewport = True
 
 
 #---------------------------------------------------------------------------------------
@@ -233,7 +236,6 @@ def select_instance_collection():
     current_scn = bpy.context.window.scene
     exist = select_instance_collection_loop( col , current_scn.collection ,exist)
 
-    print(exist)
     
     #コレクションが見つからない場合、別のシーンを走査
     #見つかったら、シーンをアクティブにしてビューレイヤを表示状態にする
@@ -241,14 +243,14 @@ def select_instance_collection():
         for scn in bpy.data.scenes:
             if current_scn != scn:
                 exist = select_instance_collection_loop( col , scn.collection ,exist)
-                print(scn.name , scn.collection.name,exist)
 
                 if exist:
                     utils.sceneActive(scn.name)
-                    layer = bpy.context.window.view_layer.layer_collection
-                    show_collection_by_name( layer , col.name)
                     break
-    
+                               
+    layer = bpy.context.window.view_layer.layer_collection
+    show_collection_by_name( layer , col.name , False)
+
     utils.deselectAll()                        
     for ob in bpy.data.collections[col.name].objects:
         utils.select(ob,True)
@@ -275,14 +277,14 @@ def select_instance_collection_loop( col ,current ,exist):
 #---------------------------------------------------------------------------------------
 #ビューレイヤーを名前で表示状態切替
 #---------------------------------------------------------------------------------------
-def show_collection_by_name(layer ,name):
+def show_collection_by_name(layer ,name , state):
     props = bpy.context.scene.kiatools_oa
     children = layer.children
 
     if children != None:
         for ly in children:
             if name == ly.name:
-                ly.hide_viewport = False                
+                ly.hide_viewport = state                
 
-            show_collection_by_name(ly , name)
+            show_collection_by_name(ly , name , state)
 
