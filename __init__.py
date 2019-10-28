@@ -212,8 +212,8 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
 
     def invoke(self, context, event):
         #アクティブオブジェクトのコンストレインの状態を取得
-        # display.get_constraint_status()
-        # modifier.get_param()
+        display.get_constraint_status()
+        modifier.get_param()
         # props = bpy.context.scene.kiatools_oa
 
         return context.window_manager.invoke_props_dialog(self)
@@ -231,6 +231,8 @@ class KIATOOLS_MT_modelingtools(bpy.types.Operator):
         row = box.row()
         box1 = row.box()
         box1.operator( "kiatools.selectmodifiercurve" , icon = 'MODIFIER')
+        box1.operator( "kiatools.selectmodifierboolean" , icon = 'MODIFIER')
+
         box1.prop(props, "solidify_thickness" , icon='RESTRICT_VIEW_OFF')
         box1.prop(props, "shrinkwrap_offset" , icon='RESTRICT_VIEW_OFF')
         box1.prop(props, "bevel_width" , icon='RESTRICT_VIEW_OFF')
@@ -630,13 +632,23 @@ class KIATOOLS_OT_modifier_apply(bpy.types.Operator):
         return {'FINISHED'}
 
 #選択したモデルのモディファイヤカーブのカーブ選択。
-class KIATOOLS_OT_select_modifier_curve(bpy.types.Operator):
+class KIATOOLS_OT_modifier_select_curve(bpy.types.Operator):
     """選択したモデルのモディファイヤカーブのカーブ選択"""
     bl_idname = "kiatools.selectmodifiercurve"
     bl_label = "EditCurve"
 
     def execute(self, context):
-        modifier.select_curve()
+        modifier.select('CURVE')
+        return {'FINISHED'}
+
+#選択したモデルのモディファイヤカーブのカーブ選択。
+class KIATOOLS_OT_modifier_select_boolean(bpy.types.Operator):
+    """選択したモデルのブーリアン選択"""
+    bl_idname = "kiatools.selectmodifierboolean"
+    bl_label = "EditBoolean"
+
+    def execute(self, context):
+        modifier.select('BOOLEAN')
         return {'FINISHED'}
 
 #---------------------------------------------------------------------------------------
@@ -715,7 +727,8 @@ classes = (
     KIATOOLS_OT_modifier_show,
     KIATOOLS_OT_modifier_hide,
     KIATOOLS_OT_modifier_apply,
-    KIATOOLS_OT_select_modifier_curve,
+    KIATOOLS_OT_modifier_select_curve,
+    KIATOOLS_OT_modifier_select_boolean,
 
     KIATOOLS_OT_constraint_asign,
 

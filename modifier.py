@@ -91,6 +91,7 @@ def assign():
     active = utils.getActiveObj()
     result = []
 
+    print(modtype)
     if modtype in ('LATTICE','CURVE','SHRINKWRAP','BOOLEAN'):
         #2node
         for obj in sel:
@@ -116,6 +117,8 @@ def assign():
     for ob in result:
         utils.select(ob,True)
         utils.activeObj(ob)
+    
+    get_param()
 
 
 def show(status):
@@ -147,19 +150,21 @@ def apply_mod():
 
 
 #選択したモデルのモディファイヤカーブのカーブ選択。
-def select_curve():
+def select(TYPE):
     sel = bpy.context.selected_objects
     utils.deselectAll()
 
-    curve = []
+    mod_object = []
     for ob in sel:
         for i, mod in enumerate(ob.modifiers):
-            if mod.type == 'CURVE':
-                curve.append(mod.object)
+            if mod.type == TYPE:
+                mod_object.append(mod.object)
 
-    for obj in curve:
+    for obj in mod_object:
+        obj.hide_set(False)
         utils.select(obj,True)
         utils.activeObj(obj)
+
 
     utils.mode_e()
     
