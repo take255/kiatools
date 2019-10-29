@@ -12,7 +12,9 @@ TYPE = (
 ('BOOLEAN','BOOLEAN',''),
 )
 
+#---------------------------------------------------------------------------------------
 #モディファイヤのパラメータ値を取得
+#---------------------------------------------------------------------------------------
 def get_param():
     act  = utils.getActiveObj()
     if act == None:
@@ -31,8 +33,6 @@ def get_param():
             props.array_offset_x = mod.relative_offset_displace[0]
             props.array_offset_y = mod.relative_offset_displace[1]
             props.array_offset_z = mod.relative_offset_displace[2]
-            #props.array_count = mod.count
-            #print(mod.relative_offset_displace[0])
 
         if mod.type == 'BEVEL':
             props.bevel_width = mod.width
@@ -42,21 +42,11 @@ def get_param():
 
     props.mod_init = False
 
-# #モディファイヤのリストから選択した状態を取得
-# def get_selected_list_param(self,context):
-#     props = bpy.context.scene.kiatools_oa    
-#     modtype = props.modifier_type
 
-#     act = utils.getActiveObj()
-
-#     #print('mod----')    
-#     for mod in act.modifiers:        
-#         if modtype == mod.type:
-#             print(modtype)
-
-
+#---------------------------------------------------------------------------------------
 #モディファイヤの値調整
 #Solidifyの厚み　、Shrinkwrapオフセット、ベベル幅調整　、アレイの個数
+#---------------------------------------------------------------------------------------
 def apply(self,context):
     act = utils.getActiveObj()
     props = bpy.context.scene.kiatools_oa
@@ -82,7 +72,10 @@ def apply(self,context):
         if mod.type == 'SHRINKWRAP':
             mod.offset = props.shrinkwrap_offset
 
+
+#---------------------------------------------------------------------------------------
 #モディファイヤにターゲットを割り当てる場合とそれ以外で分ける
+#---------------------------------------------------------------------------------------
 def assign():
     props = bpy.context.scene.kiatools_oa    
     modtype = props.modifier_type
@@ -121,6 +114,7 @@ def assign():
     get_param()
 
 
+#---------------------------------------------------------------------------------------
 def show(status):
     props = bpy.context.scene.kiatools_oa    
     modtype = props.modifier_type
@@ -135,6 +129,7 @@ def show(status):
                 mod.show_viewport = status
 
 
+#---------------------------------------------------------------------------------------
 def apply_mod():
     props = bpy.context.scene.kiatools_oa    
     modtype = props.modifier_type
@@ -149,7 +144,9 @@ def apply_mod():
                 bpy.ops.object.modifier_apply( modifier = mod.name )
 
 
+#---------------------------------------------------------------------------------------
 #選択したモデルのモディファイヤカーブのカーブ選択。
+#---------------------------------------------------------------------------------------
 def select(TYPE):
     sel = bpy.context.selected_objects
     utils.deselectAll()
