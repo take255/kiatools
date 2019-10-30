@@ -333,14 +333,11 @@ def move_collection_to_other_scene():
     target = props.target_scene_name
 
     current = bpy.context.window.scene.name
-    #collection = bpy.context.view_layer.collections.active
     collection = bpy.context.view_layer.active_layer_collection 
-    #bpy.context.window.view_layer.layer_collection.children
 
     c = bpy.data.collections[collection.name]
 
     bpy.data.scenes[target].collection.children.link(c)
-    # bpy.data.scenes[target].collection.children.link(collection)
     bpy.context.window.scene.collection.children.unlink(c)
 
     utils.sceneActive(target)

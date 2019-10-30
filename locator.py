@@ -12,6 +12,7 @@ imp.reload(utils)
 #中間にロケータをかます。親のロケータの形状をsphereにする。
 #モデルのトランスフォームは初期値にする
 #ロケータを '09_ConstRoot'　に入れる
+#コレクションをインスタンスに差し替える関数追加
 #---------------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------------
@@ -190,5 +191,60 @@ def restore_child():
         utils.delete(objects[tmpname])
 
     utils.multiSelection(selected) 
+
+
+#---------------------------------------------------------------------------------------
+#コレクションをインスタンス化
+#元モデルを原点にもってくる。選択したモデルをピボットとし、メンバーになっているコレクションを対象
+#---------------------------------------------------------------------------------------
+def instancer():
+    col = bpy.context.scene.collection
+
+    #選択したオブジェクトのコレクションを選択
+    #回転matrixと位置vectorに分ける
+    act = utils.getActiveObj()
+    pos_act = Vector(act.location) 
+    m_rot = act.matrix_world.to_3x3()
+    m_rot.invert()
+
+    matrix = Matrix(act.matrix_world)
+    col_selected = act.users_collection[0]
+
+
+    #平行移動
+    for ob in col_selected.objects:
+        ob.location -= pos_act
+
+    #回転
+    for ob in col_selected.objects:
+        pos = Vector(ob.location)
+        pos_new = m_rot @ pos
+        print (ob.name , ob.location , pos)
+        m = m_rot @ ob.matrix_world.to_3x3()
+        ob.matrix_world = m.to_4x4()
+        ob.location = pos_new
+
+
+    instance = bpy.data.objects.new(col_selected.name , None)
+    instance.instance_collection = col_selected
+    instance.instance_type = 'COLLECTION'
+    instance.matrix_world  = matrix
+
+    col.objects.link(instance)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

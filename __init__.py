@@ -233,8 +233,9 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.restore_child" , icon = 'MODIFIER')
 
         box3 = col.box()
-        box3.label( text = 'select' )
+        box3.label( text = 'instance' )
         box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
+        box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
         
 
 
@@ -506,7 +507,6 @@ class KIATOOLS_OT_preserve_child(Operator):
     """一時的に子供を別ノードに逃がす。親を選択して実行する"""
     bl_idname = "kiatools.preserve_child"
     bl_label = "preserve"
-
     def execute(self, context):
         locator.preserve_child()
         return {'FINISHED'}
@@ -516,22 +516,28 @@ class KIATOOLS_OT_restore_child(Operator):
     """一時的に逃がした子供を復旧させる。もとの親を選択して実行する。"""
     bl_idname = "kiatools.restore_child"
     bl_label = "resore"
-
     def execute(self, context):
         locator.restore_child()
         return {'FINISHED'}
 
 
 #---------------------------------------------------------------------------------------
-#Select
+#Instance
 #---------------------------------------------------------------------------------------
-class KIATOOLS_OT_select_instance_collection(Operator):
+class KIATOOLS_OT_instance_select_collection(Operator):
     """コレクションインスタンスから元のコレクションを選択する"""
     bl_idname = "kiatools.select_instance_collection"
-    bl_label = "instance source"
-
+    bl_label = "select source"
     def execute(self, context):
         display.select_instance_collection()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_instance_instancer(Operator):
+    """選択したオブジェクトがメンバーのコレクションをインスタンス化"""
+    bl_idname = "kiatools.select_instance_instancer"
+    bl_label = "instancer"
+    def execute(self, context):
+        locator.instancer()
         return {'FINISHED'}
 
 
@@ -880,7 +886,9 @@ classes = (
     KIATOOLS_OT_collections_hide,
     KIATOOLS_OT_preserve_collections,
 
-    KIATOOLS_OT_select_instance_collection,
+    #instance
+    KIATOOLS_OT_instance_select_collection,
+    KIATOOLS_OT_instance_instancer,
 
     KIATOOLS_OT_modifier_asign,
     KIATOOLS_OT_modifier_show,
