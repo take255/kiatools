@@ -233,6 +233,38 @@ def instancer():
     col.objects.link(instance)
 
 
+#---------------------------------------------------------------------------------------
+#軸変換　まず　x->y　を作ってみる
+#1．原点において意図する姿勢にしたあとapplyする
+#2. 元の状態に戻す。この場合軸を入れ替えた状態のマトリックスにする
+#---------------------------------------------------------------------------------------
+def swap_axis():
+    act = utils.getActiveObj()
+    matrix = act.matrix_world.to_3x3()
+    pos = Vector(act.location)
+
+    #第一段階
+    m = Matrix(((-1,0,0),(1,0,0),(0,0,1)))
+    m.transpose()
+    act.matrix_world = m.to_4x4()
+
+    bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
+    
+    
+    #第二段階　転置して成分分離
+    matrix.transpose()
+    print(matrix)
+    y = -matrix[0]
+    x =  matrix[1]
+    z =  matrix[2]
+
+    m = Matrix((x,y,z))
+
+    m.transpose()
+    act.matrix_world = m.to_4x4()
+    act.location = pos
+
+
 
 
 

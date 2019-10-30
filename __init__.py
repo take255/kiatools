@@ -1,3 +1,16 @@
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTIBILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 import bpy
 from bpy.types import ( PropertyGroup , Panel , Operator ,UIList)
 import imp
@@ -189,6 +202,10 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.label( text = 'instance' )
         box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
         box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
+
+        box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
+
+
         
 
 
@@ -670,7 +687,6 @@ class KIATOOLS_OT_collections_hide(Operator):
     """選択したオブジェクトが属するコレクションをハイド"""
     bl_idname = "kiatools.collections_hide"
     bl_label = "hide"
-
     def execute(self, context):
         display.collection_hide()
         return {'FINISHED'}
@@ -680,9 +696,23 @@ class KIATOOLS_OT_preserve_collections(Operator):
     """現在のコレクション表示状態を保持する"""
     bl_idname = "kiatools.preserve_collections"
     bl_label = ""
-
     def execute(self, context):
         display.preserve_collections()
+        return {'FINISHED'}
+
+
+
+#---------------------------------------------------------------------------------------
+#transform
+#---------------------------------------------------------------------------------------
+
+#現在のコレクション表示状態を保持する
+class KIATOOLS_OT_swap_axis(Operator):
+    """軸をスワップする"""
+    bl_idname = "kiatools.swap_axis"
+    bl_label = ""
+    def execute(self, context):
+        locator.swap_axis()
         return {'FINISHED'}
 
 
@@ -732,6 +762,9 @@ classes = (
     KIATOOLS_OT_apply_particle_instance,
     KIATOOLS_OT_apply_model,
     KIATOOLS_OT_move_collection,
+
+    #transform
+    KIATOOLS_OT_swap_axis
 )
 
 def register():
