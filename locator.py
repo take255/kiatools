@@ -224,7 +224,7 @@ def instancer():
         ob.matrix_world = m.to_4x4()
         ob.location = pos_new
 
-
+    #インスタンス　空オブジェクトを作成
     instance = bpy.data.objects.new(col_selected.name , None)
     instance.instance_collection = col_selected
     instance.instance_type = 'COLLECTION'
