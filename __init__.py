@@ -204,6 +204,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
 
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_mirror" , icon = 'MODIFIER')
 
 
         
@@ -710,9 +711,19 @@ class KIATOOLS_OT_preserve_collections(Operator):
 class KIATOOLS_OT_swap_axis(Operator):
     """軸をスワップする"""
     bl_idname = "kiatools.swap_axis"
-    bl_label = ""
+    bl_label = "swap axis"
     def execute(self, context):
         locator.swap_axis()
+        return {'FINISHED'}
+
+
+#オブジェクトをX軸ミラーコンストレインする
+class KIATOOLS_OT_instance_mirror(Operator):
+    """インスタンスをX軸ミラーする"""
+    bl_idname = "kiatools.instance_mirror"
+    bl_label = "constraint mirror"
+    def execute(self, context):
+        locator.mirror()
         return {'FINISHED'}
 
 
@@ -752,7 +763,9 @@ classes = (
     KIATOOLS_OT_modifier_select_curve,
     KIATOOLS_OT_modifier_select_boolean,
 
+    #コンストレイン
     KIATOOLS_OT_constraint_asign,
+    KIATOOLS_OT_instance_mirror,
 
     #object applier
     KIATOOLS_MT_new_scene,

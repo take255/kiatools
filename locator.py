@@ -264,9 +264,40 @@ def swap_axis():
     act.matrix_world = m.to_4x4()
     act.location = pos
 
+CONST_PARAM_LOC_SOURCE = ( ( -100, 100),( -100, 100 ),( -100, 100) )
+CONST_PARAM_LOC_DEST = ( ( 100, -100),( -100, 100 ),( -100, 100) )
+CONST_PARAM_ROT_SOURCE = ( ( -3.14, 3.14),( -3.14 , 3.14 ),( -3.14 , 3.14 ) )
+CONST_PARAM_ROT_DEST = ( ( -3.14, 3.14),( 3.14 , -3.14 ),( 3.14 , -3.14 ) )
 
 
+#---------------------------------------------------------------------------------------
+#オブジェクトをインスタンスしてX軸でミラーコンストレインする
+#---------------------------------------------------------------------------------------
+def mirror():
+    ob_source = utils.getActiveObj()
+    bpy.ops.object.duplicate_move_linked()
 
+    ob_target = utils.getActiveObj()
+    ob_target.matrix_world = Matrix()
+
+    const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
+    const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
+    const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
+
+
+def const_setting( ob_source , ob_target , source , dest , maptype , suffix ):
+    constraint =ob_target.constraints.new('TRANSFORM')
+    constraint.target = ob_source
+    constraint.map_from = maptype
+    constraint.map_to = maptype
+
+    for x,val in zip(( 'x' , 'y' , 'z' ) , source ):
+        exec('constraint.from_min_%s%s = %02f' % (x , suffix , val[0]) )
+        exec('constraint.from_max_%s%s = %02f' % (x , suffix , val[1]) )
+
+    for x,val in zip(( 'x' , 'y' , 'z' ),dest):
+        exec('constraint.to_min_%s%s = %02f' % ( x , suffix , val[0]) )
+        exec('constraint.to_max_%s%s = %02f' % ( x , suffix , val[1]) )
 
 
 
