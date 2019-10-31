@@ -132,7 +132,7 @@ class KIATOOLS_Props_OA(PropertyGroup):
 #---------------------------------------------------------------------------------------
 #UI
 #---------------------------------------------------------------------------------------
-class KIATOOLS_MT_toolPanel(utils.panel):   
+class KIATOOLS_PT_toolPanel(utils.panel):   
     bl_label ='KIAtools'
     def draw(self, context):
         self.layout.operator("kiatools.apply", icon='BLENDER')
@@ -730,7 +730,7 @@ class KIATOOLS_OT_instance_mirror(Operator):
 classes = (
     KIATOOLS_Props_OA,
 
-    KIATOOLS_MT_toolPanel,
+    KIATOOLS_PT_toolPanel,
     KIATOOLS_MT_kia_helper_tools,
     KIATOOLS_MT_modelingtools,
     KIATOOLS_MT_object_applier,
