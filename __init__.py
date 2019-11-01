@@ -33,6 +33,7 @@ from . import curve
 from . import scene
 from . import constraint
 from . import locator
+from . import etc
 
 
 imp.reload(utils)
@@ -43,6 +44,7 @@ imp.reload(curve)
 imp.reload(scene)
 imp.reload(constraint)
 imp.reload(locator)
+imp.reload(etc)
 
 
 bl_info = {
@@ -113,7 +115,7 @@ class KIATOOLS_Props_OA(PropertyGroup):
 
     #モディファイヤ関連
     mod_init : BoolProperty(default = True)
-    modifier_type : EnumProperty(items = modifier.TYPE , name = 'modifier' )
+    modifier_type : EnumProperty(items = modifier.TYPE , name = '' )
 
 
     solidify_thickness : FloatProperty(name = "Solidify_thick",precision = 4, update=modifier.apply)
@@ -127,7 +129,7 @@ class KIATOOLS_Props_OA(PropertyGroup):
     array_offset_z : FloatProperty(name = "z",  update=modifier.apply)
 
     #コンストレイン関連
-    const_type : EnumProperty(items = constraint.TYPE , name = 'constraint' )
+    const_type : EnumProperty(items = constraint.TYPE , name = '' )
 
 #---------------------------------------------------------------------------------------
 #UI
@@ -139,6 +141,7 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         self.layout.operator("kiatools.modelingtools", icon='BLENDER')
         self.layout.operator("kiatools.kia_helper_tools", icon='BLENDER')
         self.layout.operator("kiatools.curvetools", icon='BLENDER')
+        self.layout.operator("kiatools.etc", icon='BLENDER')
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
@@ -195,8 +198,10 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         col = row.column()
         box3 = col.box()
         box3.label( text = 'child' )
-        box3.operator( "kiatools.preserve_child" , icon = 'MODIFIER')
-        box3.operator( "kiatools.restore_child" , icon = 'MODIFIER')
+
+        row1 = box3.row()
+        row1.operator( "kiatools.preserve_child" , icon = 'PINNED')
+        row1.operator( "kiatools.restore_child" , icon = 'UNPINNED')
 
         box3 = col.box()
         box3.label( text = 'instance' )
@@ -205,9 +210,6 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
 
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
         box3.operator( "kiatools.instance_mirror" , icon = 'MODIFIER')
-
-
-        
 
 
 
@@ -263,6 +265,7 @@ class KIATOOLS_MT_modelingtools(Operator):
         box.prop(props, "modifier_type" , icon='RESTRICT_VIEW_OFF')
 
         row1 = box.row()
+        row1.alignment = 'RIGHT'
         row1.operator( "kiatools.modifier_asign" , icon = 'VIEW_PAN')
         row1.operator( "kiatools.modifier_apply" , icon = 'CHECKBOX_HLT')
         row1.operator( "kiatools.modifier_show" , icon = 'HIDE_OFF')
@@ -272,6 +275,7 @@ class KIATOOLS_MT_modelingtools(Operator):
         box.label( text = 'constraint (apply)' )
         box.prop(props, "const_type" , icon='RESTRICT_VIEW_OFF')
         row1 = box.row()
+        row1.alignment = 'RIGHT'
         row1.operator( "kiatools.constraint_asign" , icon = 'VIEW_PAN')
 
 
@@ -371,6 +375,69 @@ class KIATOOLS_MT_object_applier(Operator):
 
         row = box.row()
         row.prop(props, "create_collection")
+
+
+
+#---------------------------------------------------------------------------------------
+#移植したツールをひとまずここにあつめる。
+#---------------------------------------------------------------------------------------
+class KIATOOLS_MT_etc(Operator):
+    bl_idname = "kiatools.etc"
+    bl_label = "kia etc"
+
+    def invoke(self, context, event):
+        scene.set_current()        
+        return context.window_manager.invoke_props_dialog(self, width=450)
+
+    def execute(self, context):
+        return{'FINISHED'}
+
+
+    def draw(self, context):
+        layout=self.layout
+
+        col = layout.column()
+        box = col.box()
+        row = box.row(align=False)
+
+        box1 = row.box()
+        row1 = box1.row()
+        row1.alignment = 'LEFT'
+        row1.label( text = 'x90d:' )
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_FORWARDS').axis = 'x90d'
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'x-90d'
+
+        box1 = row.box()
+        row1 = box1.row()
+        row1.alignment = 'LEFT'
+        row1.label( text = 'y90d:' )
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_FORWARDS').axis = 'y90d'
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'y-90d'
+
+        box1 = row.box()
+        row1 = box1.row()
+        row1.alignment = 'LEFT'
+        row1.label( text = 'z90d:' )
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_FORWARDS').axis = 'z90d'
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'z-90d'
+
+        # box = col.box()
+        # row = box.row()
+        box1 = row.box()
+        row1 = box1.row()
+        row1.alignment = 'LEFT'
+        row1.label( text = '180:' )
+
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'x180d'
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'y180d'
+        row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'z180d'
+
+        # row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
+        # box.operator("kiatools.remove_empty_collection" , icon = 'DUPLICATE')
+        box = col.box()
+        row = box.row()        
+        row.operator("kiatools.transform_scale_abs", icon='LOOP_BACK')
+        row.operator("kiatools.constraint_to_bone", icon='LOOP_BACK')
 
 #---------------------------------------------------------------------------------------
 #Operator
@@ -727,6 +794,39 @@ class KIATOOLS_OT_instance_mirror(Operator):
         return {'FINISHED'}
 
 
+#---------------------------------------------------------------------------------------
+#etc
+#---------------------------------------------------------------------------------------
+
+#オブジェクトをX軸ミラーコンストレインする
+class KIATOOLS_OT_transform_rotate_axis(Operator):
+    """ローカル軸を中心に回転"""
+    bl_idname = "kiatools.transform_rotate_axis"
+    bl_label = ""
+    axis : StringProperty(default='x90') 
+    def execute(self, context):
+        etc.transform_rotate_axis(self.axis)
+        return {'FINISHED'}
+
+#オブジェクトをX軸ミラーコンストレインする
+class KIATOOLS_OT_transform_scale_abs(Operator):
+    """スケールを正にする"""
+    bl_idname = "kiatools.transform_scale_abs"
+    bl_label = "scale abs"
+    def execute(self, context):
+        etc.transform_scale_abs()
+        return {'FINISHED'}
+
+#オブジェクトをX軸ミラーコンストレインする
+class KIATOOLS_OT_constraint_to_bone(Operator):
+    """選択されているボーンでコンストレインする\nモデル、アーマチュアの順に選択しEditモードでボーンを選択して実行する"""
+    bl_idname = "kiatools.constraint_to_bone"
+    bl_label = "constraint to bone"
+    def execute(self, context):
+        etc.constraint_to_bone()
+        return {'FINISHED'}
+
+
 classes = (
     KIATOOLS_Props_OA,
 
@@ -735,7 +835,7 @@ classes = (
     KIATOOLS_MT_modelingtools,
     KIATOOLS_MT_object_applier,
     KIATOOLS_MT_curvetools,
-    #KIATOOLS_MT_modifierlist,
+    KIATOOLS_MT_etc,
 
     KIATOOLS_OT_curve_create_with_bevel,
     KIATOOLS_OT_curve_create_liner,
@@ -777,7 +877,12 @@ classes = (
     KIATOOLS_OT_move_collection,
 
     #transform
-    KIATOOLS_OT_swap_axis
+    KIATOOLS_OT_swap_axis,
+
+    #etc
+    KIATOOLS_OT_transform_rotate_axis,
+    KIATOOLS_OT_transform_scale_abs,
+    KIATOOLS_OT_constraint_to_bone
 )
 
 def register():
