@@ -34,7 +34,7 @@ from . import scene
 from . import constraint
 from . import locator
 from . import etc
-
+from . import rename
 
 imp.reload(utils)
 imp.reload(modifier)
@@ -45,6 +45,7 @@ imp.reload(scene)
 imp.reload(constraint)
 imp.reload(locator)
 imp.reload(etc)
+imp.reload(rename)
 
 
 bl_info = {
@@ -131,6 +132,12 @@ class KIATOOLS_Props_OA(PropertyGroup):
     #コンストレイン関連
     const_type : EnumProperty(items = constraint.TYPE , name = '' )
 
+    #リネームツール関連
+    rename_start_num : IntProperty( name = "start",min=1,default=1 )
+    rename_string : StringProperty(name = "word")
+    from_string : StringProperty(name = "from")
+    to_string : StringProperty(name = "to")
+
 #---------------------------------------------------------------------------------------
 #UI
 #---------------------------------------------------------------------------------------
@@ -142,6 +149,7 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         self.layout.operator("kiatools.kia_helper_tools", icon='BLENDER')
         self.layout.operator("kiatools.curvetools", icon='BLENDER')
         self.layout.operator("kiatools.etc", icon='BLENDER')
+        self.layout.operator("kiatools.rename", icon='BLENDER')
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
@@ -421,8 +429,6 @@ class KIATOOLS_MT_etc(Operator):
         row1.operator("kiatools.transform_rotate_axis", icon='LOOP_FORWARDS').axis = 'z90d'
         row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'z-90d'
 
-        # box = col.box()
-        # row = box.row()
         box1 = row.box()
         row1 = box1.row()
         row1.alignment = 'LEFT'
@@ -432,12 +438,12 @@ class KIATOOLS_MT_etc(Operator):
         row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'y180d'
         row1.operator("kiatools.transform_rotate_axis", icon='LOOP_BACK').axis = 'z180d'
 
-        # row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
-        # box.operator("kiatools.remove_empty_collection" , icon = 'DUPLICATE')
         box = col.box()
         row = box.row()        
         row.operator("kiatools.transform_scale_abs", icon='LOOP_BACK')
         row.operator("kiatools.constraint_to_bone", icon='LOOP_BACK')
+        row.operator("kiatools.reference_make_proxy", icon='LOOP_BACK')
+        row.operator("kiatools.refernce_make_link_draw", icon='LOOP_BACK')
 
 #---------------------------------------------------------------------------------------
 #Operator
@@ -827,6 +833,250 @@ class KIATOOLS_OT_constraint_to_bone(Operator):
         return {'FINISHED'}
 
 
+#---------------------------------------------------------------------------------------
+#リファレンス関連ツール
+#---------------------------------------------------------------------------------------
+
+#複数のモデルを同時にプロキシ化
+class KIATOOLS_OT_refernce_make_proxy(Operator):
+    """選択した複数のモデルをプロキシする"""
+    bl_idname = "kiatools.reference_make_proxy"
+    bl_label = "make proxy"
+    def execute(self, context):
+        etc.refernce_make_proxy()
+        return {'FINISHED'}
+
+#シンボリックリンク作成
+class KIATOOLS_OT_refernce_make_link(Operator):
+    bl_idname = "kiatools.refernce_make_link_draw"
+    bl_label = "make link"
+    filepath : bpy.props.StringProperty(subtype="DIR_PATH")
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        etc.refernce_make_link()
+        return {'FINISHED'}
+
+
+#---------------------------------------------------------------------------------------
+#リネームツール
+#リネームとオブジェクト選択に関するツール群
+#---------------------------------------------------------------------------------------
+class KIATOOLS_MT_rename(Operator):
+    bl_idname = "kiatools.rename"
+    bl_label = "rename select"
+
+    def execute(self, context):
+        return{'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self , width = 400 )
+
+    def draw(self, context):
+        props = bpy.context.scene.kiatools_oa
+        layout=self.layout
+
+        col_root = layout.column()
+        split = col_root.split(factor = 0.5, align = False)
+        box = split.box()
+        box.label(text="rename select")
+
+        col = box.column()
+        col.prop(props, "rename_string")
+        
+        
+        #spl_sel = col.split(factor = 0.2, align = False)
+        row1 = col.row()
+        row1.alignment = 'LEFT'
+        row1.operator("kiatools.rename_select" , icon = 'VIEW_PAN')
+        row1.operator("kiatools.rename_dropper" , icon = 'EYEDROPPER')
+        row1.operator("kiatools.rename_common_renumber" , icon = 'LINENUMBERS_ON')
+        row1.prop(props, "rename_start_num")
+
+        split1 = col.split(factor = 0.5, align = False)
+        split1.operator("kiatools.rename_by_rule")
+
+        row2 =split1.row()
+        row2.operator("kiatools.rename_add" , text = 'Prefix').op = 'PREFIX'
+        row2.operator("kiatools.rename_add", text = 'Suffix').op = 'SUFFIX'
+
+        
+
+        #split = split.split(factor = , align = False)
+        box = split.box()
+        #box = row.box()
+        col = box.column()
+        col.operator("kiatools.rename_replace")
+        col.prop(props, "from_string")
+        col.prop(props, "to_string")
+        
+        box = col_root.box()
+
+        row = box.row()
+
+        box1 = row.box()
+        box1.label(text="replace")
+        col = box1.column()        
+        for s in ('high>low' , 'low>high' , '.>_'):
+            col.operator("kiatools.rename_add", text = s).op = s
+
+        box1 = row.box()
+        box1.label(text="shape name")
+        col = box1.column()        
+        for s in ('object','maya'):
+            col.operator("kiatools.rename_mesh", text = s).op = s
+
+        box1 = row.box()
+        box1.label(text="add")
+        col = box1.column()        
+        for s in ('org',):
+            col.operator("kiatools.rename_add_defined", text = s).op = s
+
+
+class KIATOOLS_OT_rename_continuous_renumber(Operator):
+    """入力した文字列の末尾に連番を振るリネーム"""
+    bl_idname = "kiatools.rename_common_renumber"
+    bl_label = ""
+    def execute(self, context):
+        rename.continuous_renumber()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_by_rule(Operator):
+    """複数選択し、最後に選択したノード名のネーミングルールに従ってリネームする。"""
+    bl_idname = "kiatools.rename_by_rule"
+    bl_label = "rename by rule"
+    def execute(self, context):
+        rename.by_rule()
+        return {'FINISHED'}
+
+#プレフィックスとサフィックスの追加
+class KIATOOLS_OT_rename_add(Operator):
+    """プレフィクスを追加する。番号は振らない。"""
+    bl_idname = "kiatools.rename_add"
+    bl_label = ""
+    op : StringProperty()
+    def execute(self, context):
+        rename.add(self.op)
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_replace(Operator):
+    """fromの文字列をtoに置き換える"""
+    bl_idname = "kiatools.rename_replace"
+    bl_label = "replace"
+    def execute(self, context):
+        rename.replace()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_replace_defined(Operator):
+    bl_idname = "kiatools.rename_replace_defined"
+    bl_label = ""
+    op : StringProperty()
+    def execute(self, context):
+        rename.replace_defined(self.op)
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_mesh(Operator):
+    """メッシュの名前をオブジェクト名に合わせる"""
+    bl_idname = "kiatools.rename_mesh"
+    bl_label = "メッシュ名をオブジェクト名に修正"
+    op : StringProperty()
+    def execute(self, context):
+        rename.mesh(self.op)
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_add_defined(Operator):
+    bl_idname = "kiatools.rename_add_defined"
+    bl_label = ""
+    op : StringProperty()
+    def execute(self, context):
+        rename.add_defined(self.op)
+        return {'FINISHED'}
+
+class KIATOOLS_OT_rename_select(Operator):
+    """名前フィールドのワードで選択する"""
+    bl_idname = "kiatools.rename_select"
+    bl_label = ""
+    def execute(self, context):
+        rename.select()
+        return {'FINISHED'}
+
+#アクティブなオブジェクトの名前をフィールドに入力する
+class KIATOOLS_OT_rename_dropper(Operator):
+    """アクティブなオブジェクトの名前をフィールドに入力する"""
+    bl_idname = "kiatools.rename_dropper"
+    bl_label = ""
+    def execute(self, context):
+        rename.dropper()
+        return {'FINISHED'}
+
+
+
+#---------------------------------------------------------------------------------------
+#ここから下のリネームツール、未対応
+#---------------------------------------------------------------------------------------
+class Rename_del_suffix(bpy.types.Operator):
+    """アンダーバーで区切られたサフィックスを削除する"""
+    bl_idname = "object.rename_del_suffix"
+    bl_label = "suffixを削除"
+
+    def execute(self, context):
+        for ob in bpy.context.selected_objects:
+            buf = ob.name.split('_')
+            new = ob.name.replace('_'+buf[-1],'')
+            print(ob.data.name)
+            ob.name = new
+            ob.data.name = new#メッシュの名前もついでに変更する
+        return {'FINISHED'}
+
+
+class Rename_Del_Suffix_number(bpy.types.Operator):
+    """ノード名の末尾の.数字を削除"""
+    bl_idname = "object.rename_del_suffix_number"
+    bl_label = "ノード名の末尾の.数字を削除"
+
+    def execute(self, context):
+        for ob in bpy.context.selected_objects:
+            buf = ob.name.split(".")
+            #末尾が数字か調べる
+            if buf[-1].isdigit():
+                ob.name = ob.name[:-(len(buf[-1])+1)]
+        return {'FINISHED'}
+
+#前提条件として、orgは先頭の要素ではない、orgの前に必ず数字がついてる
+class Renumber_Pre_Org(bpy.types.Operator):
+    """orgの前の番号をスタート番号から順番に番号を振りなおす"""
+    bl_idname = "object.renumber_pre_org"
+    bl_label = "orgの前の番号を振りなおす"
+
+    def execute(self, context):
+        num = bpy.context.scene.nico2_rename_start_number
+        for ob in bpy.context.selected_objects:
+            buf = ob.name.split("_")
+
+            #org.001みたいになっている場合も考慮する必要あり
+
+            for i,b in enumerate(buf):
+                if b.find('org') != -1:
+                    index = i - 1
+
+            buf[index] = '%02d' % num
+            num += 1
+
+            newname = ''
+            for b in buf:
+                newname += b + '_'
+
+            ob.name = newname[:-1] #最後の _ を削除している
+        return {'FINISHED'}
+
+
+
+
+
+
 classes = (
     KIATOOLS_Props_OA,
 
@@ -882,8 +1132,24 @@ classes = (
     #etc
     KIATOOLS_OT_transform_rotate_axis,
     KIATOOLS_OT_transform_scale_abs,
-    KIATOOLS_OT_constraint_to_bone
+    KIATOOLS_OT_constraint_to_bone,
+    KIATOOLS_OT_refernce_make_proxy,
+    KIATOOLS_OT_refernce_make_link,
+
+    #リネーム
+    KIATOOLS_MT_rename,
+    KIATOOLS_OT_rename_continuous_renumber,
+    KIATOOLS_OT_rename_by_rule,
+    KIATOOLS_OT_rename_add,
+    KIATOOLS_OT_rename_replace,
+    KIATOOLS_OT_rename_replace_defined,
+    KIATOOLS_OT_rename_mesh,
+    KIATOOLS_OT_rename_add_defined,
+    KIATOOLS_OT_rename_select,
+    KIATOOLS_OT_rename_dropper
+    
 )
+
 
 def register():
     for cls in classes:
