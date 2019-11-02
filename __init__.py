@@ -217,7 +217,12 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
 
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
-        box3.operator( "kiatools.instance_mirror" , icon = 'MODIFIER')
+
+        box4 = col.box()
+        box3.label( text = 'instance mirror' )
+        box4.operator( "kiatools.instance_mirror" , text = 'x' ).op = 'x'
+        box4.operator( "kiatools.instance_mirror" , text = 'y' ).op = 'y'
+        box4.operator( "kiatools.instance_mirror" , text = 'z' ).op = 'z'
 
 
 
@@ -795,8 +800,9 @@ class KIATOOLS_OT_instance_mirror(Operator):
     """インスタンスをX軸ミラーする"""
     bl_idname = "kiatools.instance_mirror"
     bl_label = "constraint mirror"
+    op : StringProperty(default='x')
     def execute(self, context):
-        locator.mirror()
+        locator.mirror(self.op)
         return {'FINISHED'}
 
 

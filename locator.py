@@ -269,20 +269,32 @@ CONST_PARAM_LOC_DEST = ( ( 100, -100),( -100, 100 ),( -100, 100) )
 CONST_PARAM_ROT_SOURCE = ( ( -3.14, 3.14),( -3.14 , 3.14 ),( -3.14 , 3.14 ) )
 CONST_PARAM_ROT_DEST = ( ( -3.14, 3.14),( 3.14 , -3.14 ),( 3.14 , -3.14 ) )
 
+CONST_PARAM_LOC_SOURCE_Y = ( ( -100, 100),( -100, 100 ),( -100, 100) )
+CONST_PARAM_LOC_DEST_Y = ( ( -100, 100),( 100, -100 ),( -100, 100) )
+CONST_PARAM_ROT_SOURCE_Y = ( ( -3.14, 3.14),( -3.14 , 3.14 ),( -3.14 , 3.14 ) )
+CONST_PARAM_ROT_DEST_Y = ( ( 3.14, -3.14),( -3.14 , 3.14 ),( 3.14 , -3.14 ) )
+
 
 #---------------------------------------------------------------------------------------
 #オブジェクトをインスタンスしてX軸でミラーコンストレインする
 #---------------------------------------------------------------------------------------
-def mirror():
+def mirror(axis):
     ob_source = utils.getActiveObj()
     bpy.ops.object.duplicate_move_linked()
 
     ob_target = utils.getActiveObj()
     ob_target.matrix_world = Matrix()
 
-    const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
-    const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
-    const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
+    if axis == 'x':
+        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
+        const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
+        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
+
+    if axis == 'y':
+        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'LOCATION' ,'' )
+        const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE_Y , CONST_PARAM_ROT_DEST_Y ,'ROTATION' ,'_rot')
+        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'SCALE' ,'_scale')
+
 
 
 def const_setting( ob_source , ob_target , source , dest , maptype , suffix ):
