@@ -35,6 +35,8 @@ from . import constraint
 from . import locator
 from . import etc
 from . import rename
+from . import skinning
+from . import blendshape
 
 imp.reload(utils)
 imp.reload(modifier)
@@ -46,6 +48,8 @@ imp.reload(constraint)
 imp.reload(locator)
 imp.reload(etc)
 imp.reload(rename)
+imp.reload(skinning)
+imp.reload(blendshape)
 
 
 bl_info = {
@@ -138,6 +142,11 @@ class KIATOOLS_Props_OA(PropertyGroup):
     from_string : StringProperty(name = "from")
     to_string : StringProperty(name = "to")
 
+    #スキン関連
+    bone_xray_string : BoolProperty( name = "bone_xray",update=skinning.bone_xray)
+    #bone_xray_string : BoolProperty( name = "bone_xray", update = skinning.bone_xray )
+    vertexgrp_string : StringProperty(name = "word")
+
 #---------------------------------------------------------------------------------------
 #UI
 #---------------------------------------------------------------------------------------
@@ -150,6 +159,7 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         self.layout.operator("kiatools.curvetools", icon='BLENDER')
         self.layout.operator("kiatools.etc", icon='BLENDER')
         self.layout.operator("kiatools.rename", icon='BLENDER')
+        self.layout.operator("kiatools.skinningtools", icon='BLENDER')
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
@@ -392,6 +402,75 @@ class KIATOOLS_MT_object_applier(Operator):
 
 
 #---------------------------------------------------------------------------------------
+#スキン関連ツール
+#---------------------------------------------------------------------------------------
+class KIATOOLS_MT_skinningtools(Operator):
+    bl_idname = "kiatools.skinningtools"
+    bl_label = "skinning"
+
+    def execute(self, context):
+        return{'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width = 400)
+
+    def draw(self, context):
+        layout=self.layout
+        scn = context.scene
+
+        row = layout.row(align=False)
+        box = row.box()
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_bind") #!!!
+        row.operator("kiatools.skinning_mirror_weights")#!!!
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_add_influence_bone") #!!!
+        #row.operator("kiatools.add_vertex_group")""
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_assign_maxweight")#!!!
+        row.prop(scn, "button_toggle_bone_xray", icon='BLENDER', toggle=True)
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_transfer_skinweights")#!!!
+
+
+        row = layout.row(align=False)
+        box = row.box()
+        box.label(text = 'delete')
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_apply_not_armature_modifiers")#!!!
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_delete_all_vtxgrp")#!!
+        row.operator("kiatools.skinning_delete_notexist_vtxgrp")#!!
+
+        row = box.row()
+        row.alignment = 'EXPAND'
+        row.operator("kiatools.skinning_delete_allweights")#!!!
+        row.operator("kiatools.skinning_delete_unselectedweights")#!!!
+
+
+        row = layout.row(align=False)
+        box = row.box()
+        box.label(text = '文字を指定して削除')
+        box.operator("kiatools.skinning_delete_by_word")#!!
+        box.prop(scn, "del_vertexgrp_string", icon='BLENDER', toggle=True)
+
+
+
+
+
+
+#---------------------------------------------------------------------------------------
 #移植したツールをひとまずここにあつめる。
 #---------------------------------------------------------------------------------------
 class KIATOOLS_MT_etc(Operator):
@@ -449,6 +528,11 @@ class KIATOOLS_MT_etc(Operator):
         row.operator("kiatools.constraint_to_bone", icon='LOOP_BACK')
         row.operator("kiatools.reference_make_proxy", icon='LOOP_BACK')
         row.operator("kiatools.refernce_make_link_draw", icon='LOOP_BACK')
+
+        box = col.box()
+        row = box.row()        
+
+        box.operator("kiatools.invert_pose_blendshape")
 
 #---------------------------------------------------------------------------------------
 #Operator
@@ -780,7 +864,6 @@ class KIATOOLS_OT_preserve_collections(Operator):
         return {'FINISHED'}
 
 
-
 #---------------------------------------------------------------------------------------
 #transform
 #---------------------------------------------------------------------------------------
@@ -838,6 +921,13 @@ class KIATOOLS_OT_constraint_to_bone(Operator):
         etc.constraint_to_bone()
         return {'FINISHED'}
 
+class KIATOOLS_OT_invert_pose_blendshape(Operator):
+    """スキンバインドされたブレンドシェイプを元の姿勢に戻す。\nブレンドシェイプのスキンモデルとアーマチャーを選択して実行する。"""
+    bl_idname = "kiatools.invert_pose_blendshape"
+    bl_label = "Invert Pose"
+    def execute(self, context):    
+        blendshape.invert()
+        return {'FINISHED'}        
 
 #---------------------------------------------------------------------------------------
 #リファレンス関連ツール
@@ -867,6 +957,100 @@ class KIATOOLS_OT_refernce_make_link(Operator):
         return {'FINISHED'}
 
 
+
+#---------------------------------------------------------------------------------------
+#スキニングツール
+#---------------------------------------------------------------------------------------
+class KIATOOLS_OT_skinning_add_influence_bone(Operator):
+    """インフルエンスジョイント(vertexGroup)を追加:\nまずモデルを選択する。次にアーマチュアを選択してエディットモードに入りジョイントを選択する。"""
+    bl_idname = "kiatools.skinning_add_influence_bone"
+    bl_label = "add influence bone"
+    def execute(self, context):
+        skinning.add_influence_bone()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_bind(Operator):
+    """Armature Modifierを追加する\そのさい頂点グループは作らないので注意\nモデルとArmatureを選択して実行する。"""
+    bl_idname = "kiatools.skinning_bind"
+    bl_label = "bind"
+    def execute(self, context):
+        skinning.bind()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_mirror_weights(Operator):
+    bl_idname = "kiatools.skinning_mirror_weights"
+    bl_label = "mirror"
+    def execute(self, context):
+        skinning.mirror_weights()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_asssign_maxweight(Operator):
+    """選択ボーンに100%ウェイトを振る:\nまずモデルを選択する。次にアーマチュアを選択してエディットモードに入りジョイントを選択する。"""
+    bl_idname = "kiatools.skinning_asssign_maxweight"
+    bl_label = "100%"
+    def execute(self, context):
+        skinning.asssign_maxweight()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_transfer_skinweights(Operator):
+    """複数モデルのウェイト転送。コピー先を複数選択し、最後にコピー元のモデルを選択して実行"""
+    bl_idname = "kiatools.skinning_transfer_skinweights"
+    bl_label = "transfer"
+    def execute(self, context):
+        skinning.transfer_skinweights()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_apply_not_armature_modifiers(Operator):
+    """アーマチュア以外のモディファイヤをApplyする。"""
+    bl_idname = "kiatools.skinning_apply_not_armature_modifiers"
+    bl_label = "apply not armature"
+    def execute(self, context):
+        skinning.apply_not_armature_modifiers()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_delete_allweights(Operator):
+    """すべての頂点グループのウェイトを０にする"""
+    bl_idname = "kiatools.skinning_delete_allweight"
+    bl_label = "全ウェイト"
+    def execute(self, context):
+        skinning.delete_allweights()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_delete_unselectedweights(Operator):
+    """選択されているのボーン以外のウェイトを０にする。まずモデルを選択し、その後アーマチュアを選択、エディットモードに入りボーンを選択。"""
+    bl_idname = "kiatools.skinning_delete_unselectedweights"
+    bl_label = "unselected"
+    def execute(self, context):
+        skinning.delete_unselectedweights()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_delete_by_word(Operator):
+    """指定された文字列以外のバーテックスグループを削除する"""
+    bl_idname = "kiatools.skinning_delete_by_word"
+    bl_label = "指定された文字列以外削除"
+
+    def execute(self, context):
+        skinning.delete_by_word()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_skinning_delete_not_exist_vtxgrp(Operator):
+    """存在していない頂点グループ"""
+    bl_idname = "kiatools.skinning_delete_notexist_vtxgrp"
+    bl_label = "delete not exist"
+
+    def execute(self, context):
+        skinning.delete_notexist_vtxgrp()
+        return {'FINISHED'}
+
+
+class KIATOOLS_OT_skinning_delete_all_vtxgrp(Operator):
+    """現在アサインされているバーテックスグループをすべて削除する"""
+    bl_idname = "kiatools.skinning_delete_all_vtxgrp"
+    bl_label = "delete all vtx grp"
+    def execute(self, context):
+        skinning.delete_all_vtxgrp()
+        return {'FINISHED'}
+
 #---------------------------------------------------------------------------------------
 #リネームツール
 #リネームとオブジェクト選択に関するツール群
@@ -892,9 +1076,7 @@ class KIATOOLS_MT_rename(Operator):
 
         col = box.column()
         col.prop(props, "rename_string")
-        
-        
-        #spl_sel = col.split(factor = 0.2, align = False)
+                
         row1 = col.row()
         row1.alignment = 'LEFT'
         row1.operator("kiatools.rename_select" , icon = 'VIEW_PAN')
@@ -908,12 +1090,8 @@ class KIATOOLS_MT_rename(Operator):
         row2 =split1.row()
         row2.operator("kiatools.rename_add" , text = 'Prefix').op = 'PREFIX'
         row2.operator("kiatools.rename_add", text = 'Suffix').op = 'SUFFIX'
-
         
-
-        #split = split.split(factor = , align = False)
         box = split.box()
-        #box = row.box()
         col = box.column()
         col.operator("kiatools.rename_replace")
         col.prop(props, "from_string")
@@ -1023,7 +1201,7 @@ class KIATOOLS_OT_rename_dropper(Operator):
 #---------------------------------------------------------------------------------------
 #ここから下のリネームツール、未対応
 #---------------------------------------------------------------------------------------
-class Rename_del_suffix(bpy.types.Operator):
+class Rename_del_suffix(Operator):
     """アンダーバーで区切られたサフィックスを削除する"""
     bl_idname = "object.rename_del_suffix"
     bl_label = "suffixを削除"
@@ -1038,7 +1216,7 @@ class Rename_del_suffix(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Rename_Del_Suffix_number(bpy.types.Operator):
+class Rename_Del_Suffix_number(Operator):
     """ノード名の末尾の.数字を削除"""
     bl_idname = "object.rename_del_suffix_number"
     bl_label = "ノード名の末尾の.数字を削除"
@@ -1052,7 +1230,7 @@ class Rename_Del_Suffix_number(bpy.types.Operator):
         return {'FINISHED'}
 
 #前提条件として、orgは先頭の要素ではない、orgの前に必ず数字がついてる
-class Renumber_Pre_Org(bpy.types.Operator):
+class Renumber_Pre_Org(Operator):
     """orgの前の番号をスタート番号から順番に番号を振りなおす"""
     bl_idname = "object.renumber_pre_org"
     bl_label = "orgの前の番号を振りなおす"
@@ -1141,6 +1319,7 @@ classes = (
     KIATOOLS_OT_constraint_to_bone,
     KIATOOLS_OT_refernce_make_proxy,
     KIATOOLS_OT_refernce_make_link,
+    KIATOOLS_OT_invert_pose_blendshape,
 
     #リネーム
     KIATOOLS_MT_rename,
@@ -1152,8 +1331,24 @@ classes = (
     KIATOOLS_OT_rename_mesh,
     KIATOOLS_OT_rename_add_defined,
     KIATOOLS_OT_rename_select,
-    KIATOOLS_OT_rename_dropper
+    KIATOOLS_OT_rename_dropper,
     
+
+    #スキニング
+    KIATOOLS_MT_skinningtools,
+    KIATOOLS_OT_skinning_add_influence_bone,
+    KIATOOLS_OT_skinning_bind,
+    KIATOOLS_OT_skinning_mirror_weights,
+    KIATOOLS_OT_skinning_asssign_maxweight,
+    KIATOOLS_OT_skinning_transfer_skinweights,
+    KIATOOLS_OT_skinning_apply_not_armature_modifiers,
+    KIATOOLS_OT_skinning_delete_allweights,
+    KIATOOLS_OT_skinning_delete_unselectedweights,
+    KIATOOLS_OT_skinning_delete_by_word,
+    KIATOOLS_OT_skinning_delete_not_exist_vtxgrp,
+    KIATOOLS_OT_skinning_delete_all_vtxgrp
+
+
 )
 
 
