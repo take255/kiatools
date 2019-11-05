@@ -5,15 +5,16 @@ import re
 from . import utils
 imp.reload(utils)
 
-
-def transfer_skinweights():
-    bpy.ops.object.data_transfer(
-        use_create=True,
-        vert_mapping='NEAREST',
-        data_type='VGROUP_WEIGHTS',
-        layers_select_src='ALL',
-        layers_select_dst='NAME',
-        mix_mode='REPLACE')
+#選択したモデルのアーマチュアモディファイヤを全面に出す
+def bone_xray(self,context):
+    for ob in utils.selected():
+        print(ob.name)
+        for m in ob.modifiers:
+            if m.type == 'ARMATURE':
+                amt = m.object
+                print(amt)
+                #ob.show_x_ray = not ob.show_x_ray
+                amt.show_in_front = not amt.show_in_front
 
 
 ##スキンバインド
@@ -126,16 +127,9 @@ def add_influence_bone():
                 bpy.context.object.vertex_groups.new(name = group)
 
 
-def bone_xray(self,context):
-    selected = bpy.context.selected_objects
-    for obj in selected:
-      if obj.type == 'ARMATURE':
-
-        show_x_ray = not obj.show_x_ray
-        selected = bpy.context.selected_objects
-        obj.show_x_ray = show_x_ray
 
 
+#アーマチュア以外のモディファイヤをapply
 def apply_not_armature_modifiers():
     sel = bpy.context.selected_objects
     scene_obj = bpy.context.scene.objects
@@ -251,11 +245,8 @@ def delete_unselectedweights():
     # objArray = []
     for obj in selected:
         if obj.type != 'ARMATURE':
-
-
             #選択モデルをアクティブに
             objects.active =obj
-
     
             msh = obj.data
             vtxCount = len(msh.vertices)#頂点数
@@ -268,6 +259,19 @@ def delete_unselectedweights():
 
             obj.select = True
 
+
+
+#---------------------------------------------------------------------------------------
+#ウェイトの転送
+#---------------------------------------------------------------------------------------
+def weights_transfer():
+    bpy.ops.object.data_transfer(
+        use_create=True,
+        vert_mapping='NEAREST',
+        data_type='VGROUP_WEIGHTS',
+        layers_select_src='ALL',
+        layers_select_dst='NAME',
+        mix_mode='REPLACE')
 
 #---------------------------------------------------------------------------------------
 #ウェイトのミラー
@@ -312,7 +316,7 @@ def getTgt(v,array):
             break
     return ret
 
-def mirror_weights(self):
+def weights_mirror(self):
     index2name={}
     nameflip={}
 

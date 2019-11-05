@@ -143,9 +143,10 @@ class KIATOOLS_Props_OA(PropertyGroup):
     to_string : StringProperty(name = "to")
 
     #スキン関連
-    bone_xray_string : BoolProperty( name = "bone_xray",update=skinning.bone_xray)
+    bone_xray_bool : BoolProperty( name = "bone_xray",update=skinning.bone_xray)
     #bone_xray_string : BoolProperty( name = "bone_xray", update = skinning.bone_xray )
     vertexgrp_string : StringProperty(name = "word")
+    #del_vertexgrp_string
 
 #---------------------------------------------------------------------------------------
 #UI
@@ -415,32 +416,37 @@ class KIATOOLS_MT_skinningtools(Operator):
         return context.window_manager.invoke_props_dialog(self, width = 400)
 
     def draw(self, context):
+        props = bpy.context.scene.kiatools_oa
         layout=self.layout
-        scn = context.scene
 
         row = layout.row(align=False)
+        col = row.column()
+
+        box = col.box()
+        box.label(text = 'view')
+        box.prop(props, "bone_xray_bool", icon='BLENDER', toggle=True)
+
+
+        box = col.box()
+        box.label(text = 'influence')
+        col = box.column()
+        #row = box.row()
+        #row.alignment = 'EXPAND'
+        col.operator("kiatools.skinning_bind") #!!!
+        col.operator("kiatools.skinning_add_influence_bone") #!!!
+
+
+        #row = box.row()
         box = row.box()
-        row = box.row()
-        row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_bind") #!!!
-        row.operator("kiatools.skinning_mirror_weights")#!!!
-
-        row = box.row()
-        row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_add_influence_bone") #!!!
+        box.label(text = 'weight')
+        col = box.column()
         #row.operator("kiatools.add_vertex_group")""
-
-        row = box.row()
-        row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_assign_maxweight")#!!!
-        row.prop(scn, "button_toggle_bone_xray", icon='BLENDER', toggle=True)
-
-        row = box.row()
-        row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_transfer_skinweights")#!!!
+        col.operator("kiatools.skinning_assign_maxweights")#!!!
+        col.operator("kiatools.skinning_weights_mirror")#!!!
+        col.operator("kiatools.skinning_weights_transfer")#!!!
 
 
-        row = layout.row(align=False)
+        #row = layout.row(align=False)
         box = row.box()
         box.label(text = 'delete')
 
@@ -463,7 +469,7 @@ class KIATOOLS_MT_skinningtools(Operator):
         box = row.box()
         box.label(text = '文字を指定して削除')
         box.operator("kiatools.skinning_delete_by_word")#!!
-        box.prop(scn, "del_vertexgrp_string", icon='BLENDER', toggle=True)
+        box.prop(props, "vertexgrp_string", icon='BLENDER', toggle=True)
 
 
 
@@ -964,7 +970,7 @@ class KIATOOLS_OT_refernce_make_link(Operator):
 class KIATOOLS_OT_skinning_add_influence_bone(Operator):
     """インフルエンスジョイント(vertexGroup)を追加:\nまずモデルを選択する。次にアーマチュアを選択してエディットモードに入りジョイントを選択する。"""
     bl_idname = "kiatools.skinning_add_influence_bone"
-    bl_label = "add influence bone"
+    bl_label = "add inf"
     def execute(self, context):
         skinning.add_influence_bone()
         return {'FINISHED'}
@@ -977,27 +983,27 @@ class KIATOOLS_OT_skinning_bind(Operator):
         skinning.bind()
         return {'FINISHED'}
 
-class KIATOOLS_OT_skinning_mirror_weights(Operator):
-    bl_idname = "kiatools.skinning_mirror_weights"
+class KIATOOLS_OT_skinning_weights_mirror(Operator):
+    bl_idname = "kiatools.skinning_weights_mirror"
     bl_label = "mirror"
     def execute(self, context):
-        skinning.mirror_weights()
+        skinning.weights_mirror()
         return {'FINISHED'}
 
-class KIATOOLS_OT_skinning_asssign_maxweight(Operator):
+class KIATOOLS_OT_skinning_assign_maxweights(Operator):
     """選択ボーンに100%ウェイトを振る:\nまずモデルを選択する。次にアーマチュアを選択してエディットモードに入りジョイントを選択する。"""
-    bl_idname = "kiatools.skinning_asssign_maxweight"
+    bl_idname = "kiatools.skinning_assign_maxweights"
     bl_label = "100%"
     def execute(self, context):
-        skinning.asssign_maxweight()
+        skinning.assign_maxweights()
         return {'FINISHED'}
 
-class KIATOOLS_OT_skinning_transfer_skinweights(Operator):
+class KIATOOLS_OT_skinning_weights_transfer(Operator):
     """複数モデルのウェイト転送。コピー先を複数選択し、最後にコピー元のモデルを選択して実行"""
-    bl_idname = "kiatools.skinning_transfer_skinweights"
+    bl_idname = "kiatools.skinning_weights_transfer"
     bl_label = "transfer"
     def execute(self, context):
-        skinning.transfer_skinweights()
+        skinning.weights_transfer()
         return {'FINISHED'}
 
 class KIATOOLS_OT_skinning_apply_not_armature_modifiers(Operator):
@@ -1010,7 +1016,7 @@ class KIATOOLS_OT_skinning_apply_not_armature_modifiers(Operator):
 
 class KIATOOLS_OT_skinning_delete_allweights(Operator):
     """すべての頂点グループのウェイトを０にする"""
-    bl_idname = "kiatools.skinning_delete_allweight"
+    bl_idname = "kiatools.skinning_delete_allweights"
     bl_label = "全ウェイト"
     def execute(self, context):
         skinning.delete_allweights()
@@ -1338,9 +1344,9 @@ classes = (
     KIATOOLS_MT_skinningtools,
     KIATOOLS_OT_skinning_add_influence_bone,
     KIATOOLS_OT_skinning_bind,
-    KIATOOLS_OT_skinning_mirror_weights,
-    KIATOOLS_OT_skinning_asssign_maxweight,
-    KIATOOLS_OT_skinning_transfer_skinweights,
+    KIATOOLS_OT_skinning_weights_mirror,
+    KIATOOLS_OT_skinning_assign_maxweights,
+    KIATOOLS_OT_skinning_weights_transfer,
     KIATOOLS_OT_skinning_apply_not_armature_modifiers,
     KIATOOLS_OT_skinning_delete_allweights,
     KIATOOLS_OT_skinning_delete_unselectedweights,
