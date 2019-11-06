@@ -205,23 +205,25 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         row1.operator( "kiatools.collections_hide" )
 
 
-        #row = box.row()
-        box1 = layout.box()
-        row = box1.row()
-        box2 = row.box()
+        #second column--------------------------------------------------
+        #box1 = layout.box()
+        #row = layout.row()
+        row = layout.split(factor = 0.4, align = False)
+
+        col = row.column()
+        box2 = col.box()
         box2.label( text = 'locator' )
         box2.operator( "kiatools.replace_locator" , icon = 'MODIFIER')
         box2.operator( "kiatools.replace_locator_facenormal" , icon = 'MODIFIER')
         box2.operator( "kiatools.group" , icon = 'MODIFIER')
 
-        col = row.column()
         box3 = col.box()
         box3.label( text = 'child' )
+        box3.operator( "kiatools.preserve_child" , icon = 'PINNED')
+        box3.operator( "kiatools.restore_child" , icon = 'UNPINNED')
 
-        row1 = box3.row()
-        row1.operator( "kiatools.preserve_child" , icon = 'PINNED')
-        row1.operator( "kiatools.restore_child" , icon = 'UNPINNED')
-
+        #instacne
+        col = row.column()
         box3 = col.box()
         box3.label( text = 'instance' )
         box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
@@ -230,10 +232,11 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
 
         box4 = col.box()
-        box3.label( text = 'instance mirror' )
-        box4.operator( "kiatools.instance_mirror" , text = 'x' ).op = 'x'
-        box4.operator( "kiatools.instance_mirror" , text = 'y' ).op = 'y'
-        box4.operator( "kiatools.instance_mirror" , text = 'z' ).op = 'z'
+        box4.label( text = 'instance mirror' )
+        row = box4.row()
+        row.operator( "kiatools.instance_mirror" , text = 'x' ).op = 'x'
+        row.operator( "kiatools.instance_mirror" , text = 'y' ).op = 'y'
+        row.operator( "kiatools.instance_mirror" , text = 'z' ).op = 'z'
 
 
 
