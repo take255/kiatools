@@ -228,6 +228,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.label( text = 'instance' )
         box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
         box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
+        box3.operator( "kiatools.select_instance_substantial" , icon = 'MODIFIER')
 
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
 
@@ -666,7 +667,7 @@ class KIATOOLS_OT_instance_select_collection(Operator):
     bl_idname = "kiatools.select_instance_collection"
     bl_label = "select source"
     def execute(self, context):
-        display.select_instance_collection()
+        locator.select_instance_collection()
         return {'FINISHED'}
 
 class KIATOOLS_OT_instance_instancer(Operator):
@@ -675,6 +676,14 @@ class KIATOOLS_OT_instance_instancer(Operator):
     bl_label = "instancer"
     def execute(self, context):
         locator.instancer()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_instance_substantial(Operator):
+    """コレクションインスタンスを実体化させる"""
+    bl_idname = "kiatools.select_instance_substantial"
+    bl_label = "substantial"
+    def execute(self, context):
+        locator.instance_substantial()
         return {'FINISHED'}
 
 
@@ -860,7 +869,7 @@ class KIATOOLS_OT_collections_hide(Operator):
     bl_idname = "kiatools.collections_hide"
     bl_label = "hide"
     def execute(self, context):
-        display.collection_hide()
+        locator.collection_hide()
         return {'FINISHED'}
 
 #現在のコレクション表示状態を保持する
@@ -1298,6 +1307,7 @@ classes = (
     #instance
     KIATOOLS_OT_instance_select_collection,
     KIATOOLS_OT_instance_instancer,
+    KIATOOLS_OT_instance_substantial,
 
     KIATOOLS_OT_modifier_asign,
     KIATOOLS_OT_modifier_show,

@@ -232,6 +232,157 @@ def instancer():
 
     col.objects.link(instance)
 
+#---------------------------------------------------------------------------------------
+#コレクション実体化のループ
+#コレクションの中にコレクションがある場合、再帰的に実体化していく
+#インスタンス元のモデルを選択して複製、コレクションに入れてインスタンスコレクションを差し替え
+#選択物がインスタンスだったら dataを調べてNoneを返せばメッシュではない
+#インスタンスを実体化したら、複製したインスタンスオブジェクトを削除する
+#---------------------------------------------------------------------------------------
+
+def instance_substantial_loop( col ):
+    act = utils.getActiveObj()
+    matrix = Matrix(act.matrix_world)
+    col_org = select_instance_collection() #インスタンス元のコレクションのオブジェクトを選択する
+
+    obarray = []
+    selected = utils.selected()
+    
+    for ob in selected:
+        # utils.deselectAll()
+
+        # utils.select(ob,True)
+        # utils.activeObj(ob)
+        utils.act(ob)
+        if ob.data == None:
+            instance_substantial_loop(col)
+            
+        else:
+            bpy.ops.object.duplicate_move()
+            act = utils.getActiveObj()
+            col.objects.link(act)
+            col_org.objects.unlink(act)
+                    
+            for mod in ob.modifiers:
+                bpy.ops.object.modifier_apply( modifier = mod.name )
+
+        act = utils.getActiveObj()
+        obarray.append(act)
+    
+    utils.deselectAll()
+    for ob in obarray:
+        utils.select(ob,True)
+
+    bpy.ops.object.join()
+
+    act = utils.getActiveObj()
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
+    act.matrix_world = matrix
+
+
+
+
+#---------------------------------------------------------------------------------------
+#インスタンスを実体化
+#---------------------------------------------------------------------------------------
+def instance_substantial():
+    col = bpy.data.collections.new('new_name')
+    bpy.context.scene.collection.children.link(col)
+
+    instance_substantial_loop(col)
+
+    act = utils.getActiveObj()
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
+
+ 
+
+
+#---------------------------------------------------------------------------------------
+#コレクションインスタンスから元のコレクションを選択する
+#カレントにコレクションがあるかどうか調べ、なければ別のシーンを検索する
+#コレクションを返す
+#---------------------------------------------------------------------------------------
+def select_instance_collection():
+    act = utils.getActiveObj()
+    col = act.instance_collection
+
+    utils.deselectAll()
+
+    exist = False
+    #カレントシーンにコレクションがあるかどうか調べる
+    current_scn = bpy.context.window.scene
+    exist = select_instance_collection_loop( col , current_scn.collection ,exist)
+
+    
+    #コレクションが見つからない場合、別のシーンを走査
+    #見つかったら、シーンをアクティブにしてビューレイヤを表示状態にする
+    if not exist:
+        for scn in bpy.data.scenes:
+            if current_scn != scn:
+                exist = select_instance_collection_loop( col , scn.collection ,exist)
+
+                if exist:
+                    utils.sceneActive(scn.name)
+                    break
+                               
+    layer = bpy.context.window.view_layer.layer_collection
+    show_collection_by_name( layer , col.name , False)
+
+    utils.deselectAll()                  
+    collection = bpy.data.collections[col.name]
+    for ob in collection.objects:
+        utils.select(ob,True)
+        utils.activeObj(ob)
+
+    return collection
+
+#---------------------------------------------------------------------------------------
+#ビューレイヤーを再帰的に調べて表示状態にする
+#---------------------------------------------------------------------------------------
+def select_instance_collection_loop( col ,current ,exist):
+    props = bpy.context.scene.kiatools_oa
+    children = current.children
+
+    if children != None:
+        for c in children:
+            if col.name == c.name:
+                exist = True
+
+            exist = select_instance_collection_loop(col ,c, exist)
+
+    return exist
+
+#---------------------------------------------------------------------------------------
+#ビューレイヤーを名前で表示状態切替
+#---------------------------------------------------------------------------------------
+def show_collection_by_name(layer ,name , state):
+    props = bpy.context.scene.kiatools_oa
+    children = layer.children
+
+    if children != None:
+        for ly in children:
+            if name == ly.name:
+                ly.hide_viewport = state                
+
+            show_collection_by_name(ly , name , state)
+
+#---------------------------------------------------------------------------------------
+#選択オブジェクトのコレクションをハイド
+#---------------------------------------------------------------------------------------
+def collection_hide():
+    selected = utils.selected()
+    layer = bpy.context.window.view_layer.layer_collection
+
+    for ob in selected:
+        for col in ob.users_collection:
+            show_collection_by_name(layer ,col.name , True)
+            #col.hide_viewport = True
+
+
+
+
+
+
 
 #---------------------------------------------------------------------------------------
 #軸変換　まず　x->y　を作ってみる

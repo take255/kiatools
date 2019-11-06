@@ -222,59 +222,6 @@ def preserve_collections():
 
 
 #---------------------------------------------------------------------------------------
-#コレクションインスタンスから元のコレクションを選択する
-#カレントにコレクションがあるかどうか調べ、なければ別のシーンを検索する
-#---------------------------------------------------------------------------------------
-def select_instance_collection():
-    act = utils.getActiveObj()
-    col = act.instance_collection
-
-    utils.deselectAll()
-
-    exist = False
-    #カレントシーンにコレクションがあるかどうか調べる
-    current_scn = bpy.context.window.scene
-    exist = select_instance_collection_loop( col , current_scn.collection ,exist)
-
-    
-    #コレクションが見つからない場合、別のシーンを走査
-    #見つかったら、シーンをアクティブにしてビューレイヤを表示状態にする
-    if not exist:
-        for scn in bpy.data.scenes:
-            if current_scn != scn:
-                exist = select_instance_collection_loop( col , scn.collection ,exist)
-
-                if exist:
-                    utils.sceneActive(scn.name)
-                    break
-                               
-    layer = bpy.context.window.view_layer.layer_collection
-    show_collection_by_name( layer , col.name , False)
-
-    utils.deselectAll()                        
-    for ob in bpy.data.collections[col.name].objects:
-        utils.select(ob,True)
-        utils.activeObj(ob)
-
-
-#---------------------------------------------------------------------------------------
-#ビューレイヤーを再帰的に調べて表示状態にする
-#---------------------------------------------------------------------------------------
-def select_instance_collection_loop( col ,current ,exist):
-    props = bpy.context.scene.kiatools_oa
-    children = current.children
-
-    if children != None:
-        for c in children:
-            if col.name == c.name:
-                exist = True
-
-            exist = select_instance_collection_loop(col ,c, exist)
-
-    return exist
-
-
-#---------------------------------------------------------------------------------------
 #ビューレイヤーを名前で表示状態切替
 #---------------------------------------------------------------------------------------
 def show_collection_by_name(layer ,name , state):
