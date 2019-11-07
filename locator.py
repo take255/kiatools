@@ -178,7 +178,6 @@ def restore_child():
     selected = utils.selected()
     objects = bpy.context.scene.objects
 
-    #selected = bpy.context.selected_objects
     for obj in selected:
         #一時的に退避するロケータを作成
         tmpname = '%s_temp' % obj.name
@@ -276,9 +275,9 @@ def instance_substantial_loop( col ):
     bpy.ops.object.join()
 
     act = utils.getActiveObj()
+
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
     act.matrix_world = matrix
-
 
 
 
@@ -286,17 +285,28 @@ def instance_substantial_loop( col ):
 #インスタンスを実体化
 #---------------------------------------------------------------------------------------
 def instance_substantial():
-    col = bpy.data.collections.new('new_name')
-    bpy.context.scene.collection.children.link(col)
+    collection = bpy.context.scene.collection
+    new_name = '01_substantial'
+    if new_name in collection.children.keys():
+        col = collection.children[new_name]
+    else:
+        col = bpy.data.collections.new(new_name)
+
+    collection.children.link(col)
 
     instance_substantial_loop(col)
 
     act = utils.getActiveObj()
+
+    #スケールの正負判定　スケールに一つでも負の値が入っていたら法線をフリップする
+    if len( [ x for x in act.scale if x < 0 ] ) > 0:
+        utils.mode_e()
+        bpy.ops.mesh.flip_normals()
+        utils.mode_o()
+        
+
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
-
  
-
-
 #---------------------------------------------------------------------------------------
 #コレクションインスタンスから元のコレクションを選択する
 #カレントにコレクションがあるかどうか調べ、なければ別のシーンを検索する
@@ -376,12 +386,6 @@ def collection_hide():
     for ob in selected:
         for col in ob.users_collection:
             show_collection_by_name(layer ,col.name , True)
-            #col.hide_viewport = True
-
-
-
-
-
 
 
 #---------------------------------------------------------------------------------------
@@ -463,9 +467,33 @@ def const_setting( ob_source , ob_target , source , dest , maptype , suffix ):
         exec('constraint.to_max_%s%s = %02f' % ( x , suffix , val[1]) )
 
 
+#replace
+def instance_replace():
+    act_org = utils.getActiveObj()
+    selected = utils.selected() 
+    
+    for ob in selected:
+        col_ob = ob.users_collection[0]
+        p = ob.parent
+        m = Matrix(ob.matrix_world)
 
+        utils.act(act_org)    
+        bpy.ops.object.duplicate_move_linked()
 
+        act_dup = utils.getActiveObj()    
+        act_dup.matrix_world = m
+        act_dup.parent = p
 
+        colections = act_dup.users_collection
+        for c in colections:
+            c.objects.unlink(act_dup)
+
+        col_ob.objects.link(act_dup)
+    
+    for ob in selected:
+        utils.delete(ob)
+
+        
 
 
 

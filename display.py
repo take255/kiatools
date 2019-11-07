@@ -21,19 +21,6 @@ def get_constraint_status():
 
 
 #---------------------------------------------------------------------------------------
-#選択オブジェクトのコレクションをハイド
-#---------------------------------------------------------------------------------------
-def collection_hide():
-    selected = utils.selected()
-    layer = bpy.context.window.view_layer.layer_collection
-
-    for ob in selected:
-        for col in ob.users_collection:
-            show_collection_by_name(layer ,col.name , True)
-            #col.hide_viewport = True
-
-
-#---------------------------------------------------------------------------------------
 #ob　が　selectedの子供かどうか調べる。孫以降も調査。
 #---------------------------------------------------------------------------------------
 def isParent(ob , selected):
@@ -220,18 +207,4 @@ def preserve_collections():
 
     preserve_collections_loop( bpy.context.window.view_layer.layer_collection )
 
-
-#---------------------------------------------------------------------------------------
-#ビューレイヤーを名前で表示状態切替
-#---------------------------------------------------------------------------------------
-def show_collection_by_name(layer ,name , state):
-    props = bpy.context.scene.kiatools_oa
-    children = layer.children
-
-    if children != None:
-        for ly in children:
-            if name == ly.name:
-                ly.hide_viewport = state                
-
-            show_collection_by_name(ly , name , state)
 

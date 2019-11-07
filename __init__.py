@@ -37,6 +37,7 @@ from . import etc
 from . import rename
 from . import skinning
 from . import blendshape
+from . import material
 
 imp.reload(utils)
 imp.reload(modifier)
@@ -50,7 +51,12 @@ imp.reload(etc)
 imp.reload(rename)
 imp.reload(skinning)
 imp.reload(blendshape)
+imp.reload(material)
 
+
+#頂点カラーデータ
+MATERIAL_TYPE = ( ('METAL','METAL','') , ('LEATHER','LEATHER','') , ('CLOTH','CLOTH','') , ('OTHERS','OTHERS','') )
+#MATERIAL_NUMBER = {'METAL':0 , 'LEATHER':1 , 'CLOTH':2 , 'OTHER':3 }
 
 bl_info = {
 "name": "kiatools",
@@ -144,9 +150,11 @@ class KIATOOLS_Props_OA(PropertyGroup):
 
     #スキン関連
     bone_xray_bool : BoolProperty( name = "bone_xray",update=skinning.bone_xray)
-    #bone_xray_string : BoolProperty( name = "bone_xray", update = skinning.bone_xray )
     vertexgrp_string : StringProperty(name = "word")
-    #del_vertexgrp_string
+
+    #マテリアル関連
+    material_type : EnumProperty(items = MATERIAL_TYPE , name = 'type' )
+    material_index : IntProperty( name = "number", min=0, max=10, default=1 )
 
 #---------------------------------------------------------------------------------------
 #UI
@@ -161,6 +169,7 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         self.layout.operator("kiatools.etc", icon='BLENDER')
         self.layout.operator("kiatools.rename", icon='BLENDER')
         self.layout.operator("kiatools.skinningtools", icon='BLENDER')
+        self.layout.operator("kiatools.materialtools", icon='BLENDER')
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
@@ -226,9 +235,11 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         col = row.column()
         box3 = col.box()
         box3.label( text = 'instance' )
-        box3.operator( "kiatools.select_instance_collection" , icon = 'MODIFIER')
-        box3.operator( "kiatools.select_instance_instancer" , icon = 'MODIFIER')
-        box3.operator( "kiatools.select_instance_substantial" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_select_collection" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_instancer" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_substantial" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_replace" , icon = 'MODIFIER')
+
 
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
 
@@ -307,11 +318,9 @@ class KIATOOLS_MT_modelingtools(Operator):
         row1.operator( "kiatools.constraint_asign" , icon = 'VIEW_PAN')
 
 
-
 class KIATOOLS_MT_curvetools(Operator):
     bl_idname = "kiatools.curvetools"
     bl_label = "kia curve"
-
 
     def execute(self, context):
         return{'FINISHED'}
@@ -322,16 +331,31 @@ class KIATOOLS_MT_curvetools(Operator):
     def draw(self, context):
         props = bpy.context.scene.kiatools_oa
         layout=self.layout
-        row = layout.row(align=False)
+        #row = layout.row(align=False)
+        row = layout.split(factor = 0.4, align = False)
 
-        box = layout.box()
+        #box = layout.box()
         #box.label( text = 'curve' )
-        row = box.row()
+        #row = box.row()
 
         box1 = row.box()
         box1.label( text = 'create' )
-        box1.operator( "kiatools.curve_create_with_bevel" , icon = 'MODIFIER')
-        box1.operator( "kiatools.curve_create_liner" , icon = 'MODIFIER')
+
+        box1a = box1.box()
+        box1a.label( text = 'with Bevel' )
+        row1a = box1a.row()
+
+        for x in ( 'x' , 'y' , 'z' ):
+            row1a.operator( "kiatools.curve_create_with_bevel" ,text = x).dir = x
+
+        box1a = box1.box()
+        box1a.label( text = 'liner' )
+        row1a = box1a.row()
+
+        for x in ( 'x' , 'y' , 'z' ):
+            row1a.operator( "kiatools.curve_create_liner" ,text = x).dir = x
+        # box1.operator( "kiatools.curve_create_liner" )
+        # box1.operator( "kiatools.curve_create_liner" )
 
         box2 = row.box()
         box2.label( text = 'bevel assign' )
@@ -405,7 +429,6 @@ class KIATOOLS_MT_object_applier(Operator):
         row.prop(props, "create_collection")
 
 
-
 #---------------------------------------------------------------------------------------
 #スキン関連ツール
 #---------------------------------------------------------------------------------------
@@ -460,23 +483,52 @@ class KIATOOLS_MT_skinningtools(Operator):
 
         row = box.row()
         row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_delete_all_vtxgrp")#!!
-        row.operator("kiatools.skinning_delete_notexist_vtxgrp")#!!
+        row.operator("kiatools.skinning_delete_all_vtxgrp")
+        row.operator("kiatools.skinning_delete_notexist_vtxgrp")
 
         row = box.row()
         row.alignment = 'EXPAND'
-        row.operator("kiatools.skinning_delete_allweights")#!!!
-        row.operator("kiatools.skinning_delete_unselectedweights")#!!!
+        row.operator("kiatools.skinning_delete_allweights")
+        row.operator("kiatools.skinning_delete_unselectedweights")
 
 
         row = layout.row(align=False)
         box = row.box()
         box.label(text = '文字を指定して削除')
-        box.operator("kiatools.skinning_delete_by_word")#!!
+        box.operator("kiatools.skinning_delete_by_word")
         box.prop(props, "vertexgrp_string", icon='BLENDER', toggle=True)
 
 
+#---------------------------------------------------------------------------------------
+#マテリアル関連ツール
+#---------------------------------------------------------------------------------------
+class KIATOOLS_MT_materialtools(Operator):
+    bl_idname = "kiatools.materialtools"
+    bl_label = "material"
 
+    def execute(self, context):
+        return{'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        props = bpy.context.scene.kiatools_oa
+        layout=self.layout
+
+        row = layout.row(align=False)
+        col = row.column()
+
+        box = col.box()
+        box.label(text = 'vertex color')
+        col = box.column()
+        row = col.row()        
+        row.prop(props, "material_type" )
+        row.prop(props, "material_index" )
+
+        row = col.row()
+        row.operator("kiatools.material_assign_vertex_color")
+        row.operator("kiatools.material_convert_vertex_color")
 
 
 
@@ -553,15 +605,6 @@ class KIATOOLS_MT_etc(Operator):
 #Curve Tool
 #---------------------------------------------------------------------------------------
 
-class KIATOOLS_OT_curve_create_with_bevel(Operator):
-        """ベベル込みのカーブを作成する。"""
-        bl_idname = "kiatools.curve_create_with_bevel"
-        bl_label = "bevel curve"
-        
-        def execute(self, context):
-            curve.create_with_bevel()
-            return {'FINISHED'}
-
 class KIATOOLS_OT_curve_assign_bevel(Operator):
         """カーブにベベルをアサイン\nカーブ、ベベルカーブの順に選択して実行"""
         bl_idname = "kiatools.curve_assign_bevel"
@@ -589,14 +632,22 @@ class KIATOOLS_OT_curve_assign_liner_bevel(Operator):
             curve.assign_liner_bevel()
             return {'FINISHED'}
 
-
 class KIATOOLS_OT_curve_create_liner(Operator):
         """直線カーブを作成"""
         bl_idname = "kiatools.curve_create_liner"
         bl_label = "add liner"
-        
+        dir : StringProperty()
         def execute(self, context):
-            curve.create_liner()
+            curve.create_liner(self.dir)
+            return {'FINISHED'}
+
+class KIATOOLS_OT_curve_create_with_bevel(Operator):
+        """ベベル込みのカーブを作成する。"""
+        bl_idname = "kiatools.curve_create_with_bevel"
+        bl_label = "bevel curve"
+        dir : StringProperty()        
+        def execute(self, context):
+            curve.create_with_bevel(self.dir)
             return {'FINISHED'}
 
 class KIATOOLS_OT_curve_select_bevel(Operator):
@@ -664,15 +715,15 @@ class KIATOOLS_OT_restore_child(Operator):
 #---------------------------------------------------------------------------------------
 class KIATOOLS_OT_instance_select_collection(Operator):
     """コレクションインスタンスから元のコレクションを選択する"""
-    bl_idname = "kiatools.select_instance_collection"
+    bl_idname = "kiatools.instance_select_collection"
     bl_label = "select source"
     def execute(self, context):
-        locator.select_instance_collection()
+        locator.instance_select_collection()
         return {'FINISHED'}
 
 class KIATOOLS_OT_instance_instancer(Operator):
     """選択したオブジェクトがメンバーのコレクションをインスタンス化"""
-    bl_idname = "kiatools.select_instance_instancer"
+    bl_idname = "kiatools.instance_instancer"
     bl_label = "instancer"
     def execute(self, context):
         locator.instancer()
@@ -680,10 +731,18 @@ class KIATOOLS_OT_instance_instancer(Operator):
 
 class KIATOOLS_OT_instance_substantial(Operator):
     """コレクションインスタンスを実体化させる"""
-    bl_idname = "kiatools.select_instance_substantial"
+    bl_idname = "kiatools.instance_substantial"
     bl_label = "substantial"
     def execute(self, context):
         locator.instance_substantial()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_instance_replace(Operator):
+    """選択物をアクティブなものに差し替える"""
+    bl_idname = "kiatools.instance_replace"
+    bl_label = "replace"
+    def execute(self, context):
+        locator.instance_replace()
         return {'FINISHED'}
 
 
@@ -1069,6 +1128,27 @@ class KIATOOLS_OT_skinning_delete_all_vtxgrp(Operator):
         skinning.delete_all_vtxgrp()
         return {'FINISHED'}
 
+
+#---------------------------------------------------------------------------------------
+#マテリアルツール
+#---------------------------------------------------------------------------------------
+class KIATOOLS_OT_material_assign_vertex_color(Operator):
+    bl_idname = "kiatools.material_assign_vertex_color"
+    bl_label = "assign vtxcolor"
+    def execute(self, context):
+        material.assign_vertex_color()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_material_convert_vertex_color(Operator):
+    """シェーダーはPrincipled BSDFにすること"""
+    bl_idname = "kiatools.material_convert_vertex_color"
+    bl_label = "convert vtxcolor"
+    def execute(self, context):
+        material.convert_vertex_color()
+        return {'FINISHED'}
+
+
+
 #---------------------------------------------------------------------------------------
 #リネームツール
 #リネームとオブジェクト選択に関するツール群
@@ -1276,19 +1356,19 @@ class Renumber_Pre_Org(Operator):
 
 
 
-
-
-
 classes = (
     KIATOOLS_Props_OA,
 
+    #UI Panel
     KIATOOLS_PT_toolPanel,
     KIATOOLS_MT_kia_helper_tools,
     KIATOOLS_MT_modelingtools,
     KIATOOLS_MT_object_applier,
     KIATOOLS_MT_curvetools,
+    KIATOOLS_MT_materialtools,
     KIATOOLS_MT_etc,
 
+    #Curve Tool
     KIATOOLS_OT_curve_create_with_bevel,
     KIATOOLS_OT_curve_create_liner,
     KIATOOLS_OT_curve_assign_bevel,
@@ -1308,6 +1388,7 @@ classes = (
     KIATOOLS_OT_instance_select_collection,
     KIATOOLS_OT_instance_instancer,
     KIATOOLS_OT_instance_substantial,
+    KIATOOLS_OT_instance_replace,
 
     KIATOOLS_OT_modifier_asign,
     KIATOOLS_OT_modifier_show,
@@ -1365,7 +1446,11 @@ classes = (
     KIATOOLS_OT_skinning_delete_unselectedweights,
     KIATOOLS_OT_skinning_delete_by_word,
     KIATOOLS_OT_skinning_delete_not_exist_vtxgrp,
-    KIATOOLS_OT_skinning_delete_all_vtxgrp
+    KIATOOLS_OT_skinning_delete_all_vtxgrp,
+
+    #マテリアル
+    KIATOOLS_OT_material_assign_vertex_color,
+    KIATOOLS_OT_material_convert_vertex_color
 
 
 )
