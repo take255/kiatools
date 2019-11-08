@@ -173,7 +173,6 @@ class KIATOOLS_PT_toolPanel(utils.panel):
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
-
     bl_idname = "kiatools.kia_helper_tools"
     bl_label = "kia helper"
 
@@ -268,9 +267,6 @@ class KIATOOLS_MT_modelingtools(Operator):
     def draw(self, context):
         props = bpy.context.scene.kiatools_oa
         layout=self.layout
-
-        row = layout.row(align=False)
-
         box = layout.box()
         box.label( text = 'modifier' , icon = 'MODIFIER')
 
@@ -280,6 +276,7 @@ class KIATOOLS_MT_modelingtools(Operator):
 
         box1.operator( "kiatools.selectmodifiercurve" , icon = 'MODIFIER')
         box1.operator( "kiatools.selectmodifierboolean" , icon = 'MODIFIER')
+        box1.operator( "kiatools.modifier_send_to" , icon = 'MODIFIER')
 
 
         box2 = row.box()
@@ -331,16 +328,10 @@ class KIATOOLS_MT_curvetools(Operator):
     def draw(self, context):
         props = bpy.context.scene.kiatools_oa
         layout=self.layout
-        #row = layout.row(align=False)
         row = layout.split(factor = 0.4, align = False)
-
-        #box = layout.box()
-        #box.label( text = 'curve' )
-        #row = box.row()
 
         box1 = row.box()
         box1.label( text = 'create' )
-
         box1a = box1.box()
         box1a.label( text = 'with Bevel' )
         row1a = box1a.row()
@@ -354,8 +345,6 @@ class KIATOOLS_MT_curvetools(Operator):
 
         for x in ( 'x' , 'y' , 'z' ):
             row1a.operator( "kiatools.curve_create_liner" ,text = x).dir = x
-        # box1.operator( "kiatools.curve_create_liner" )
-        # box1.operator( "kiatools.curve_create_liner" )
 
         box2 = row.box()
         box2.label( text = 'bevel assign' )
@@ -382,23 +371,17 @@ class KIATOOLS_MT_object_applier(Operator):
 
     def draw(self, context):
         props = bpy.context.scene.kiatools_oa
-        layout=self.layout
+        layout = self.layout
 
-        row = layout.row(align=False)
-        box = row.box()
-
+        #row = layout.row(align=False)
+        box = layout.box()
         row = box.row()
-
         row.prop_search(props, "scene_name", props, "allscene", icon='SCENE_DATA')
         row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
-        box.operator("kiatools.remove_empty_collection" , icon = 'DUPLICATE')
 
 
-        box = layout.row(align=False).box()
-        row = box.row()
+        box = layout.box()
         box.prop_search(props, "target_scene_name", props, "target_allscene", icon='SCENE_DATA')
-
-
         row = box.row()
         row.label( text = 'apply' )
         row.operator("kiatools.apply_model" , icon='OBJECT_DATAMODE' )
@@ -411,11 +394,15 @@ class KIATOOLS_MT_object_applier(Operator):
         row.operator("kiatools.move_collection" , icon = 'GROUP')
         
 
-
-        row = layout.row(align=False)
-        box = row.box()
-        box.label(text = 'options')
+        box = layout.box()
+        box.label(text = 'collection maintenance')
         row = box.row()
+        row.operator("kiatools.collection_sort" , icon = 'DUPLICATE')
+        row.operator("kiatools.remove_empty_collection" , icon = 'DUPLICATE')
+
+
+        box = layout.box()
+        box.label(text = 'options')
 
         row = box.row()
         row.prop(props, "merge_apply")
@@ -755,7 +742,6 @@ class KIATOOLS_OT_move_model(Operator):
     """選択したモデルをリスト選択されたシーンに移動する"""
     bl_idname = "kiatools.move_model"
     bl_label = "model"
-
     def execute(self, context):
         apply.move_object_to_other_scene()
         return {'FINISHED'}
@@ -766,7 +752,6 @@ class KIATOOLS_OT_move_collection(Operator):
     """選択コレクションをリスト選択されたシーンに移動"""
     bl_idname = "kiatools.move_collection"
     bl_label = "collection"
-
     def execute(self, context):
         apply.move_collection_to_other_scene()
         return {'FINISHED'}
@@ -776,10 +761,17 @@ class KIATOOLS_OT_move_collection(Operator):
 class KIATOOLS_OT_remove_empty_collection(Operator):
     """空のコレクションを削除"""
     bl_idname = "kiatools.remove_empty_collection"
-    bl_label = "remove empty collection"
-
+    bl_label = "remove empty"
     def execute(self, context):
         apply.remove_empty_collection()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_collection_sort(Operator):
+    """コレクションのソート"""
+    bl_idname = "kiatools.collection_sort"
+    bl_label = "sort"
+    def execute(self, context):
+        apply.collection_sort()
         return {'FINISHED'}
 
 
@@ -890,20 +882,26 @@ class KIATOOLS_OT_modifier_select_curve(Operator):
     """選択したモデルのモディファイヤカーブのカーブ選択"""
     bl_idname = "kiatools.selectmodifiercurve"
     bl_label = "Curve"
-
     def execute(self, context):
         modifier.select('CURVE')
         return {'FINISHED'}
 
-#選択したモデルのモディファイヤカーブのカーブ選択。
 class KIATOOLS_OT_modifier_select_boolean(Operator):
     """選択したモデルのブーリアン選択"""
     bl_idname = "kiatools.selectmodifierboolean"
     bl_label = "Boolean"
-
     def execute(self, context):
         modifier.select('BOOLEAN')
         return {'FINISHED'}
+
+class KIATOOLS_OT_modifier_send_to(Operator):
+    """選択したモデルのモディファイヤ関連オブジェクトを一か所に集める"""
+    bl_idname = "kiatools.modifier_send_to"
+    bl_label = "send to"
+    def execute(self, context):
+        modifier.send_to()
+        return {'FINISHED'}
+
 
 #---------------------------------------------------------------------------------------
 #Constraint
@@ -1383,6 +1381,7 @@ classes = (
     KIATOOLS_OT_preserve_child,
     KIATOOLS_OT_collections_hide,
     KIATOOLS_OT_preserve_collections,
+    KIATOOLS_OT_collection_sort,
 
     #instance
     KIATOOLS_OT_instance_select_collection,
@@ -1396,6 +1395,7 @@ classes = (
     KIATOOLS_OT_modifier_apply,
     KIATOOLS_OT_modifier_select_curve,
     KIATOOLS_OT_modifier_select_boolean,
+    KIATOOLS_OT_modifier_send_to,
 
     #コンストレイン
     KIATOOLS_OT_constraint_asign,
