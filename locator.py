@@ -248,14 +248,10 @@ def instance_substantial_loop( col ):
     selected = utils.selected()
     
     for ob in selected:
-        # utils.deselectAll()
-
-        # utils.select(ob,True)
-        # utils.activeObj(ob)
         utils.act(ob)
         if ob.data == None:
-            instance_substantial_loop(col)
-            
+            if ob.instance_type == 'COLLECTION':
+                instance_substantial_loop(col)            
         else:
             bpy.ops.object.duplicate_move()
             act = utils.getActiveObj()
@@ -273,40 +269,37 @@ def instance_substantial_loop( col ):
         utils.select(ob,True)
 
     bpy.ops.object.join()
-
-    act = utils.getActiveObj()
-
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
+    transform_apply()
     act.matrix_world = matrix
-
 
 
 #---------------------------------------------------------------------------------------
 #インスタンスを実体化
 #---------------------------------------------------------------------------------------
 def instance_substantial():
-    collection = bpy.context.scene.collection
-    new_name = '01_substantial'
-    if new_name in collection.children.keys():
-        col = collection.children[new_name]
-    else:
-        col = bpy.data.collections.new(new_name)
-
-    collection.children.link(col)
-
-    instance_substantial_loop(col)
-
     act = utils.getActiveObj()
+    if act.instance_type != 'COLLECTION':
+        return
+    col = utils.collection.create('01_substantial')
+    instance_substantial_loop(col)
+    transform_apply()
 
-    #スケールの正負判定　スケールに一つでも負の値が入っていたら法線をフリップする
+    return utils.getActiveObj()
+
+ 
+#---------------------------------------------------------------------------------------
+#トランスフォームをアプライする
+#スケールの正負判定　スケールに一つでも負の値が入っていたら法線をフリップする
+#---------------------------------------------------------------------------------------
+def transform_apply():
+    act = utils.getActiveObj()
     if len( [ x for x in act.scale if x < 0 ] ) > 0:
         utils.mode_e()
         bpy.ops.mesh.flip_normals()
         utils.mode_o()
-        
-
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
- 
+
+
 #---------------------------------------------------------------------------------------
 #コレクションインスタンスから元のコレクションを選択する
 #カレントにコレクションがあるかどうか調べ、なければ別のシーンを検索する
