@@ -305,7 +305,7 @@ def transform_apply():
 #カレントにコレクションがあるかどうか調べ、なければ別のシーンを検索する
 #コレクションを返す
 #---------------------------------------------------------------------------------------
-def select_instance_collection():
+def instance_select_collection():
     act = utils.getActiveObj()
     col = act.instance_collection
 

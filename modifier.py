@@ -24,7 +24,7 @@ def send_to():
     for ob in utils.selected():
         for mod in ob.modifiers:
             if hasattr(mod , 'object' ):
-                utils.collection.move_obj( ob , col )
+                utils.collection.move_obj( mod.object , col )
 
 #---------------------------------------------------------------------------------------
 #モディファイヤのパラメータ値を取得
