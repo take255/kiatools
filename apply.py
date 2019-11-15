@@ -57,6 +57,9 @@ def doKeepArmature():
     props = bpy.context.scene.kiatools_oa
     return props.merge_apply
 
+def target_scene():
+    props = bpy.context.scene.kiatools_oa
+    return props.target_scene_name    
 
 #---------------------------------------------------------------------------------------
 #コレクションのソート 
@@ -339,8 +342,17 @@ def move_collection_to_other_scene():
 
     c = bpy.data.collections[collection.name]
 
+    for col in utils.collection.get_parent(c):
+        col.children.unlink(c)
+        
     bpy.data.scenes[target].collection.children.link(c)
-    bpy.context.window.scene.collection.children.unlink(c)
+    
+
+    #bpy.context.window.scene.collection.children.unlink(c)
+
+
+    
+
 
     utils.sceneActive(target)
     scene.set_current()

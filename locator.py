@@ -239,7 +239,9 @@ def instancer():
 #インスタンスを実体化したら、複製したインスタンスオブジェクトを削除する
 #---------------------------------------------------------------------------------------
 
-def instance_substantial_loop( col ):
+Duplicated = []
+
+def instance_substantial_loop( col , current ):
     act = utils.getActiveObj()
     matrix = Matrix(act.matrix_world)
     col_org = instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
@@ -251,38 +253,71 @@ def instance_substantial_loop( col ):
         utils.act(ob)
         if ob.data == None:
             if ob.instance_type == 'COLLECTION':
-                instance_substantial_loop(col)            
+                instance_substantial_loop(col , current)            
         else:
             bpy.ops.object.duplicate_move()
             act = utils.getActiveObj()
             col.objects.link(act)
             col_org.objects.unlink(act)
-                    
-            for mod in ob.modifiers:
-                bpy.ops.object.modifier_apply( modifier = mod.name )
+            Duplicated.append(act)
+            # print(act.name)
+            # for mod in act.modifiers:
+            #     bpy.ops.object.modifier_apply( modifier = mod.name )
 
         act = utils.getActiveObj()
-        obarray.append(act)
+        #obarray.append(act.name)
     
     utils.deselectAll()
-    for ob in obarray:
-        utils.select(ob,True)
 
-    bpy.ops.object.join()
+    scn = utils.sceneActive(current)
+    
+    # for ob in obarray:
+    #     print(ob)
+    #     utils.selectByName(ob,True)
+
+
+
+
+    #act = utils.getActiveObj()
     transform_apply()
-    act.matrix_world = matrix
+    try:
+        act.matrix_world = matrix
+    except:
+        pass
 
 
 #---------------------------------------------------------------------------------------
 #インスタンスを実体化
 #---------------------------------------------------------------------------------------
 def instance_substantial():
+    Duplicated.clear()
+    current = bpy.context.window.scene.name
+
     act = utils.getActiveObj()
+    matrix = Matrix(act.matrix_world)
+
     if act.instance_type != 'COLLECTION':
         return
     col = utils.collection.create('01_substantial')
-    instance_substantial_loop(col)
+
+    
+
+    instance_substantial_loop( col , current )
     transform_apply()
+
+    print('---------------------------------------------')
+    utils.deselectAll()
+    for ob in Duplicated:
+        utils.select(ob,True)
+        print(ob.name)
+        utils.activeObj(ob)
+        for mod in ob.modifiers:
+            bpy.ops.object.modifier_apply( modifier = mod.name )        
+
+    bpy.ops.object.join()
+    utils.getActiveObj().matrix_world = matrix
+
+    act.matrix_world = matrix
 
     return utils.getActiveObj()
 
