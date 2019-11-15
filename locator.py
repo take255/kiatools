@@ -242,7 +242,7 @@ def instancer():
 def instance_substantial_loop( col ):
     act = utils.getActiveObj()
     matrix = Matrix(act.matrix_world)
-    col_org = select_instance_collection() #インスタンス元のコレクションのオブジェクトを選択する
+    col_org = instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
 
     obarray = []
     selected = utils.selected()
