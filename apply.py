@@ -51,11 +51,11 @@ def doMerge():
 
 def doKeepHair():
     props = bpy.context.scene.kiatools_oa
-    return props.merge_apply
+    return props.keephair_apply
 
 def doKeepArmature():
     props = bpy.context.scene.kiatools_oa
-    return props.merge_apply
+    return props.keeparmature_apply
 
 def target_scene():
     props = bpy.context.scene.kiatools_oa
@@ -288,6 +288,8 @@ def apply_model_modifier(dat):
     utils.act(dat.obj)
     bpy.ops.object.parent_clear(type = 'CLEAR_KEEP_TRANSFORM')#親子付けを切る
 
+    print('---------------------------------------------')
+    print(dat.obj.name , dat.obj.type , not doKeepHair()) 
     if dat.obj.type == 'CURVE':
         if not doKeepHair():
             bpy.ops.object.convert(target = 'MESH')            
@@ -346,12 +348,6 @@ def move_collection_to_other_scene():
         col.children.unlink(c)
         
     bpy.data.scenes[target].collection.children.link(c)
-    
-
-    #bpy.context.window.scene.collection.children.unlink(c)
-
-
-    
 
 
     utils.sceneActive(target)
@@ -399,6 +395,114 @@ def apply_collection():
     bpy.ops.object.join()
 
     utils.getActiveObj().name = new_name
+
+
+#---------------------------------------------------------------------------------------
+#コレクションインスタンスをapply
+#---------------------------------------------------------------------------------------
+Duplicated = []
+
+def instance_substantial_loop( col , current ):
+    act = utils.getActiveObj()
+    matrix = Matrix(act.matrix_world)
+    col_org = locator.instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
+
+    obarray = []
+    selected = utils.selected()
+    
+    for ob in selected:
+        utils.act(ob)
+        if ob.data == None:
+            if ob.instance_type == 'COLLECTION':
+                instance_substantial_loop(col , current)            
+        else:
+            # bpy.ops.object.duplicate_move()
+            #act = utils.getActiveObj()
+            # col.objects.link(act)
+            # col_org.objects.unlink(act)
+            #Duplicated.append(act)
+            
+            Duplicated.append( apply_model_sortout(ob,ob.name + '_tmp', False) )
+
+        act = utils.getActiveObj()
+    
+    utils.deselectAll()
+
+    scn = utils.sceneActive(current)
+    
+    # for ob in obarray:
+    #     print(ob)
+    #     utils.selectByName(ob,True)
+
+    #act = utils.getActiveObj()
+    # transform_apply()
+    # try:
+    #     act.matrix_world = matrix
+    # except:
+    #     pass
+
+
+def apply_collection_instance():
+    Duplicated.clear()
+    current = bpy.context.window.scene.name
+
+    act = utils.getActiveObj()
+    matrix = Matrix(act.matrix_world)
+
+    if act.instance_type != 'COLLECTION':
+        return
+    col = utils.collection.create('01_substantial')
+
+    #このコレクションがカレントシーンにない場合はエラーになる
+    #コレクションが無い場合はカレントにコピーしてくる
+    if not utils.collection.exist(col):
+        utils.collection.move_col(col)
+    
+    instance_substantial_loop( col , current )
+
+    # print('---------------------------------------------')
+    # utils.deselectAll()
+    # for ob in Duplicated:
+    #     utils.select(ob,True)
+    #     print(ob.name)
+    #     utils.activeObj(ob)
+    #     for mod in ob.modifiers:
+    #         bpy.ops.object.modifier_apply( modifier = mod.name )        
+
+
+    for dat in Duplicated:
+        apply_model_modifier(dat)
+        #utils.sceneUnlink(dat.obj)
+    
+    #コレクションにまとめ,強制マージ
+    # put_into_collection(current_scene_name , Duplicated , utils.sceneActive(fix_scene))
+    # utils.multiSelection([x.obj for x in result])
+
+    #bpy.ops.object.join()
+
+    utils.multiSelection([x.obj for x in Duplicated])
+    bpy.ops.object.join()
+    transform_apply()
+
+    utils.getActiveObj().matrix_world = matrix
+
+    act.matrix_world = matrix
+
+    return utils.getActiveObj()
+
+
+#---------------------------------------------------------------------------------------
+#トランスフォームをアプライする
+#スケールの正負判定　スケールに一つでも負の値が入っていたら法線をフリップする
+#---------------------------------------------------------------------------------------
+def transform_apply():
+    act = utils.getActiveObj()
+    if len( [ x for x in act.scale if x < 0 ] ) > 0:
+        utils.mode_e()
+        bpy.ops.mesh.flip_normals()
+        utils.mode_o()
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
+
 
 
 #---------------------------------------------------------------------------------------

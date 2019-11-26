@@ -386,6 +386,7 @@ class KIATOOLS_MT_object_applier(Operator):
         row.label( text = 'apply' )
         row.operator("kiatools.apply_model" , icon='OBJECT_DATAMODE' )
         row.operator("kiatools.apply_collection" , icon='GROUP' )
+        row.operator("kiatools.apply_collection_instance" , icon='GROUP' )
         row.operator("kiatools.apply_particle_instance", icon='PARTICLES' )
 
         row = box.row()
@@ -782,10 +783,18 @@ class KIATOOLS_OT_apply_collection(Operator):
     """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
     bl_idname = "kiatools.apply_collection"
     bl_label = "col"
-
     def execute(self, context):
         apply.apply_collection()
         return {'FINISHED'}
+
+class KIATOOLS_OT_apply_collection_instance(Operator):
+    """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
+    bl_idname = "kiatools.apply_collection_instance"
+    bl_label = "colins"
+    def execute(self, context):
+        apply.apply_collection_instance()
+        return {'FINISHED'}
+
 
 #Newシーンのパネルを開く
 class KIATOOLS_MT_new_scene(Operator):
@@ -1405,6 +1414,7 @@ classes = (
     KIATOOLS_MT_new_scene,
     KIATOOLS_OT_move_model,
     KIATOOLS_OT_apply_collection,
+    KIATOOLS_OT_apply_collection_instance,
     KIATOOLS_OT_remove_empty_collection,
     KIATOOLS_OT_apply_particle_instance,
     KIATOOLS_OT_apply_model,
