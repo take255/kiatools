@@ -443,6 +443,15 @@ def instance_substantial_loop( col , current ):
 
 
 def apply_collection_instance():
+    # ob = bpy.data.objects['Cube']
+    # utils.scene.move_obj_scene(ob)
+    # return 
+
+    #collection = bpy.context.window.scene.collection
+    props = bpy.context.scene.kiatools_oa
+    fix_scene = props.target_scene_name
+    target_col = bpy.data.scenes[fix_scene].collection
+
     Duplicated.clear()
     current = bpy.context.window.scene.name
 
@@ -471,6 +480,7 @@ def apply_collection_instance():
 
 
     for dat in Duplicated:
+        utils.scene.move_obj_scene(dat.obj)#オブジェクトが他のシーンある場合はそこに移動する
         apply_model_modifier(dat)
         #utils.sceneUnlink(dat.obj)
     
@@ -484,9 +494,16 @@ def apply_collection_instance():
     bpy.ops.object.join()
     transform_apply()
 
-    utils.getActiveObj().matrix_world = matrix
+    merged = utils.getActiveObj()
 
+    merged.matrix_world = matrix
     act.matrix_world = matrix
+
+    print('----actname--------------------------------')
+    print(merged.name)
+    #別のシーンに移動している場合はもとのシーンに戻る。その後モデルをそのシーンに移動する。
+    utils.collection.move_obj( merged , target_col )
+    utils.sceneActive(current)
 
     return utils.getActiveObj()
 
