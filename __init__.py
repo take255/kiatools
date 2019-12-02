@@ -97,7 +97,8 @@ class KIATOOLS_Props_OA(PropertyGroup):
     deleteparticle_apply : BoolProperty(name="delete particle" ,  default = False)
     keephair_apply : BoolProperty(name="keep hair" ,  default = False)
     keeparmature_apply : BoolProperty(name="keep armature" ,  default = False)
-    merge_apply : BoolProperty(name="merge" ,  default = True)
+    merge_apply : BoolProperty(name="all" ,  default = True)
+    merge_by_material : BoolProperty(name="material" ,  default = True)
     create_collection : BoolProperty(name="create collection" ,  default = False)
 
     #シーン名
@@ -405,9 +406,13 @@ class KIATOOLS_MT_object_applier(Operator):
         box = layout.box()
         box.label(text = 'options')
 
-        row = box.row()
+        box1 = box.box()
+        box1.label(text = 'merge')
+        row = box1.row()
         row.prop(props, "merge_apply")
-        row.prop(props, "deleteparticle_apply")
+        row.prop(props, "merge_by_material")
+
+
 
         row = box.row()
         row.prop(props, "keeparmature_apply")
@@ -415,6 +420,7 @@ class KIATOOLS_MT_object_applier(Operator):
 
         row = box.row()
         row.prop(props, "create_collection")
+        row.prop(props, "deleteparticle_apply")
 
 
 #---------------------------------------------------------------------------------------

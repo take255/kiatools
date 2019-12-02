@@ -49,6 +49,10 @@ def doMerge():
     props = bpy.context.scene.kiatools_oa
     return props.merge_apply
 
+def doMergeByMaterial():
+    props = bpy.context.scene.kiatools_oa
+    return props.merge_by_material
+
 def doKeepHair():
     props = bpy.context.scene.kiatools_oa
     return props.keephair_apply
@@ -231,7 +235,7 @@ def convert_hair(hairarray, new_name , ob):
 #パーティクル削除にチェックがあったら髪の毛として処理しない
 #複数のパーティクルがある場合に対応する必要あり
 #---------------------------------------------------------------------------------------
-def apply_model_sortout(ob , new_name , isMirror):
+def apply_model_sortout(ob , new_name , isMirror ):
 
     props = bpy.context.scene.kiatools_oa
     objs = bpy.data.objects
@@ -244,8 +248,11 @@ def apply_model_sortout(ob , new_name , isMirror):
     utils.select(ob,False)
 
     #既にモデルが存在していたら削除する
-    if bpy.data.objects.get(new_name) is not None:
-        objs.remove(objs[new_name], do_unlink = True)
+    #インスタンス実体化のときは無効
+    print('doDelSame>>',doDelSame)
+    if doDelSame:
+        if bpy.data.objects.get(new_name) is not None:
+            objs.remove(objs[new_name], do_unlink = True)
         
     hairarray = []
     for mod in ob.modifiers:
@@ -273,7 +280,7 @@ def apply_model_sortout(ob , new_name , isMirror):
         utils.select(new_obj,True)
         utils.activeObj(new_obj)
 
-        result = PublishedData(new_obj , col_name ,isMirror)
+        result = PublishedData( new_obj , col_name ,isMirror )
 
     return result
 
@@ -288,13 +295,14 @@ def apply_model_modifier(dat):
     utils.act(dat.obj)
     bpy.ops.object.parent_clear(type = 'CLEAR_KEEP_TRANSFORM')#親子付けを切る
 
-    print('---------------------------------------------')
-    print(dat.obj.name , dat.obj.type , not doKeepHair()) 
+    #print('---------------------------------------------')
+    #print(dat.obj.name , dat.obj.type , not doKeepHair()) 
     if dat.obj.type == 'CURVE':
         if not doKeepHair():
             bpy.ops.object.convert(target = 'MESH')            
 
     #モディファイヤ適用
+    print('objname>>',dat.obj.name)
     for mod in dat.obj.modifiers:
         if (mod.type == 'ARMATURE') and doKeepArmature():#アーマチュアをキープする
             pass
@@ -302,7 +310,10 @@ def apply_model_modifier(dat):
         elif mod.show_viewport == False:#モディファイヤが非表示なら削除する
             bpy.context.object.modifiers.remove(mod)
         else:
-            bpy.ops.object.modifier_apply(modifier=mod.name)
+            try:#モディファイヤのターゲットがない場合など、適用でエラーが出る場合は削除
+                bpy.ops.object.modifier_apply(modifier=mod.name)
+            except:
+                bpy.context.object.modifiers.remove(mod)
 
     #ミラーパブリッシュモード(この前のループで処理しようとするとエラーが出るのでここで実行)
     if dat.mirror:
@@ -401,53 +412,55 @@ def apply_collection():
 #コレクションインスタンスをapply
 #---------------------------------------------------------------------------------------
 Duplicated = []
+doDelSame =True
 
-def instance_substantial_loop( col , current ):
+def instance_substantial_loop( col , current ,matrix):
     act = utils.getActiveObj()
-    matrix = Matrix(act.matrix_world)
     col_org = locator.instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
+
+    #コレクションにコレクションが含まれていれば、その中身を選択
+    #選択されたコレクションにリンクされたオブジェクトを取得
+    Collections.clear()
+    get_obj_from_collection(col_org)
+
+    for ob in bpy.context.scene.objects: 
+        if ob.users_collection[0].name in Collections:
+            utils.select(ob,True)
+
 
     obarray = []
     selected = utils.selected()
     
     for ob in selected:
+        utils.scene.move_obj_scene(ob)#オブジェクトが他のシーンある場合はそこに移動する
         utils.act(ob)
         if ob.data == None:
             if ob.instance_type == 'COLLECTION':
-                instance_substantial_loop(col , current)            
+                m = ob.matrix_world
+                instance_substantial_loop(col , current , m )
         else:
-            # bpy.ops.object.duplicate_move()
-            #act = utils.getActiveObj()
-            # col.objects.link(act)
-            # col_org.objects.unlink(act)
-            #Duplicated.append(act)
-            
-            Duplicated.append( apply_model_sortout(ob,ob.name + '_tmp', False) )
+            dat = apply_model_sortout( ob , ob.name + '_applied', False)#sortout内で複製
+            Duplicated.append( dat )
+            utils.collection.move_obj( dat.obj , col )
+            dat.obj.matrix_world =  matrix @ dat.obj.matrix_world 
 
         act = utils.getActiveObj()
-    
-    utils.deselectAll()
 
+    utils.deselectAll()
     scn = utils.sceneActive(current)
     
-    # for ob in obarray:
-    #     print(ob)
-    #     utils.selectByName(ob,True)
-
-    #act = utils.getActiveObj()
-    # transform_apply()
-    # try:
-    #     act.matrix_world = matrix
-    # except:
-    #     pass
 
 
 def apply_collection_instance():
-    # ob = bpy.data.objects['Cube']
-    # utils.scene.move_obj_scene(ob)
-    # return 
+    # for ob in utils.selected():
+    #     for mat in ob.data.materials:
+    #         print(mat.name)
+    # return            
 
-    #collection = bpy.context.window.scene.collection
+
+    global doDelSame
+    doDelSame = False #同名モデル削除しない
+
     props = bpy.context.scene.kiatools_oa
     fix_scene = props.target_scene_name
     target_col = bpy.data.scenes[fix_scene].collection
@@ -467,44 +480,57 @@ def apply_collection_instance():
     if not utils.collection.exist(col):
         utils.collection.move_col(col)
     
-    instance_substantial_loop( col , current )
-
-    # print('---------------------------------------------')
-    # utils.deselectAll()
-    # for ob in Duplicated:
-    #     utils.select(ob,True)
-    #     print(ob.name)
-    #     utils.activeObj(ob)
-    #     for mod in ob.modifiers:
-    #         bpy.ops.object.modifier_apply( modifier = mod.name )        
+    instance_substantial_loop( col , current , matrix )
 
 
     for dat in Duplicated:
         utils.scene.move_obj_scene(dat.obj)#オブジェクトが他のシーンある場合はそこに移動する
         apply_model_modifier(dat)
-        #utils.sceneUnlink(dat.obj)
-    
+
     #コレクションにまとめ,強制マージ
     # put_into_collection(current_scene_name , Duplicated , utils.sceneActive(fix_scene))
     # utils.multiSelection([x.obj for x in result])
 
-    #bpy.ops.object.join()
 
-    utils.multiSelection([x.obj for x in Duplicated])
-    bpy.ops.object.join()
-    transform_apply()
+    if doMerge():
+        utils.multiSelection([x.obj for x in Duplicated])
+        bpy.ops.object.join()
+        transform_apply()
+        utils.collection.move_obj( utils.getActiveObj() , target_col )
 
-    merged = utils.getActiveObj()
+    #マテリアルでモデルを仕分けする
+    elif doMergeByMaterial():
+        dic = {}
+        for ob in [x.obj for x in Duplicated]:
+            materials = ob.data.materials
+            print(materials)
+            if len(materials) != 0:
+                mat = materials[0].name
+                if mat in dic.keys():
+                    dic[mat].append(ob)
+                else:
+                    dic[mat] = [ob]
 
-    merged.matrix_world = matrix
-    act.matrix_world = matrix
+            #utils.collection.move_obj( ob , target_col )
 
-    print('----actname--------------------------------')
-    print(merged.name)
-    #別のシーンに移動している場合はもとのシーンに戻る。その後モデルをそのシーンに移動する。
-    utils.collection.move_obj( merged , target_col )
-    utils.sceneActive(current)
+        for v in dic.values():
+            utils.deselectAll()
+            utils.multiSelection(v)
+            # for ob in v:
+            #     utils.select(ob,True)
 
+
+            bpy.ops.object.join()
+            transform_apply()
+            utils.collection.move_obj( utils.getActiveObj() , target_col )
+
+    else:
+        for ob in [x.obj for x in Duplicated]:
+            utils.collection.move_obj( ob , target_col )
+
+    utils.sceneActive(fix_scene)
+
+    doDelSame = True
     return utils.getActiveObj()
 
 
