@@ -1416,7 +1416,7 @@ classes = (
     KIATOOLS_MT_curvetools,
     KIATOOLS_MT_materialtools,
     KIATOOLS_MT_etc,
-    KIATOOLS_MT_particletools,
+    #KIATOOLS_MT_particletools,
 
     #Curve Tool
     KIATOOLS_OT_curve_create_with_bevel,
