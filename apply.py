@@ -169,8 +169,9 @@ def put_into_collection(current_scene_name , result ,scn):
 # #複数のヘアパーティクルがあることを想定
 #---------------------------------------------------------------------------------------
 def convert_hair(hairarray, new_name , ob):
-
+    props = bpy.context.scene.kiatools_oa
     new_obj_array = []
+
     for num,hairname in enumerate(hairarray):
         utils.activeObj(ob)
         utils.select(ob,True)
@@ -213,7 +214,7 @@ def convert_hair(hairarray, new_name , ob):
         utils.activeObj(new_obj)
 
         #髪の毛をメッシュ化しない場合はベベルとテーパーカーブをFixScnに送る
-        if not bpy.context.scene.publishnotmesh_bool:
+        if not props.keephair_apply:
             utils.select(new_obj,False)
             utils.select(circleobj,True)
             utils.select(taperobj,True)
@@ -325,7 +326,7 @@ def apply_model_modifier(dat):
 #---------------------------------------------------------------------------------------
 #オブジェクトを別のシーンに移動
 #---------------------------------------------------------------------------------------
-def move_object_to_other_scene():
+def move_object_to_other_scene(mode):
     props = bpy.context.scene.kiatools_oa
     target = props.target_scene_name
 
@@ -336,7 +337,8 @@ def move_object_to_other_scene():
         col = ob.users_collection[0]
         result.append(PublishedData(ob , col.name ,False))
 
-        col.objects.unlink(ob)
+        if mode:
+            col.objects.unlink(ob)
     
     put_into_collection(current , result ,bpy.data.scenes[target])
     scene.set_current()
@@ -369,9 +371,9 @@ def move_collection_to_other_scene():
 #コレクションに所属しているオブジェクトをapply
 #---------------------------------------------------------------------------------------
 def apply_collection():
-    props = bpy.context.scene.kiatools_oa
+    #props = bpy.context.scene.kiatools_oa
     current_scene_name = bpy.context.scene.name
-    fix_scene = props.target_scene_name
+    fix_scene = target_scene()
 
     Collections.clear()
     utils.deselectAll()
@@ -414,7 +416,8 @@ def apply_collection():
 Duplicated = []
 doDelSame =True
 
-def instance_substantial_loop( col , current ,matrix):
+#def instance_substantial_loop( col , current ,matrix):
+def instance_substantial_loop( col , current ):
     act = utils.getActiveObj()
     col_org = locator.instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
 
@@ -436,13 +439,14 @@ def instance_substantial_loop( col , current ,matrix):
         utils.act(ob)
         if ob.data == None:
             if ob.instance_type == 'COLLECTION':
-                m = ob.matrix_world
-                instance_substantial_loop(col , current , m )
+                #m = ob.matrix_world
+                #instance_substantial_loop(col , current , m )
+                instance_substantial_loop(col , current )
         else:
             dat = apply_model_sortout( ob , ob.name + '_applied', False)#sortout内で複製
             Duplicated.append( dat )
             utils.collection.move_obj( dat.obj , col )
-            dat.obj.matrix_world =  matrix @ dat.obj.matrix_world 
+            #dat.obj.matrix_world =  matrix @ dat.obj.matrix_world 
 
         act = utils.getActiveObj()
 
@@ -452,24 +456,26 @@ def instance_substantial_loop( col , current ,matrix):
 
 
 def apply_collection_instance():
-    # for ob in utils.selected():
-    #     for mat in ob.data.materials:
-    #         print(mat.name)
-    # return            
-
 
     global doDelSame
     doDelSame = False #同名モデル削除しない
 
-    props = bpy.context.scene.kiatools_oa
-    fix_scene = props.target_scene_name
+    #シーンの切り替えがあるため、カレントシーンの設定をここで取得しておく。
+    domerge = doMerge()
+    domergebymaterial = doMergeByMaterial()
+    fix_scene = target_scene()
     target_col = bpy.data.scenes[fix_scene].collection
 
     Duplicated.clear()
     current = bpy.context.window.scene.name
 
+
     act = utils.getActiveObj()
+
+    #トランスフォームは一度初期化。マトリックスは最後にかける
     matrix = Matrix(act.matrix_world)
+    act.matrix_world = Matrix()
+
 
     if act.instance_type != 'COLLECTION':
         return
@@ -480,26 +486,33 @@ def apply_collection_instance():
     if not utils.collection.exist(col):
         utils.collection.move_col(col)
     
-    instance_substantial_loop( col , current , matrix )
-
+    #instance_substantial_loop( col , current , matrix )
+    #instance_substantial_loop( col , current , Matrix() )
+    instance_substantial_loop( col , current )
 
     for dat in Duplicated:
         utils.scene.move_obj_scene(dat.obj)#オブジェクトが他のシーンある場合はそこに移動する
         apply_model_modifier(dat)
 
+
+    #姿勢を元に戻す
+    act.matrix_world = matrix
+
     #コレクションにまとめ,強制マージ
     # put_into_collection(current_scene_name , Duplicated , utils.sceneActive(fix_scene))
     # utils.multiSelection([x.obj for x in result])
 
-
-    if doMerge():
+    if domerge:
         utils.multiSelection([x.obj for x in Duplicated])
         bpy.ops.object.join()
         transform_apply()
-        utils.collection.move_obj( utils.getActiveObj() , target_col )
+
+        act = utils.getActiveObj()
+        utils.collection.move_obj( act , target_col )
+        act.matrix_world =  matrix @ act.matrix_world
 
     #マテリアルでモデルを仕分けする
-    elif doMergeByMaterial():
+    elif domergebymaterial:
         dic = {}
         for ob in [x.obj for x in Duplicated]:
             materials = ob.data.materials
@@ -516,17 +529,20 @@ def apply_collection_instance():
         for v in dic.values():
             utils.deselectAll()
             utils.multiSelection(v)
-            # for ob in v:
-            #     utils.select(ob,True)
-
-
+     
             bpy.ops.object.join()
             transform_apply()
-            utils.collection.move_obj( utils.getActiveObj() , target_col )
+            act = utils.getActiveObj()
+            #utils.collection.move_obj( utils.getActiveObj() , target_col )
+            utils.collection.move_obj( act , target_col )
+            act.matrix_world =  matrix @ act.matrix_world
+
+
 
     else:
         for ob in [x.obj for x in Duplicated]:
             utils.collection.move_obj( ob , target_col )
+            ob.matrix_world =  matrix @ ob.matrix_world 
 
     utils.sceneActive(fix_scene)
 

@@ -38,6 +38,7 @@ from . import rename
 from . import skinning
 from . import blendshape
 from . import material
+#from . import particle
 
 imp.reload(utils)
 imp.reload(modifier)
@@ -52,6 +53,7 @@ imp.reload(rename)
 imp.reload(skinning)
 imp.reload(blendshape)
 imp.reload(material)
+#imp.reload(particle)
 
 
 #頂点カラーデータ
@@ -129,12 +131,10 @@ class KIATOOLS_Props_OA(PropertyGroup):
     mod_init : BoolProperty(default = True)
     modifier_type : EnumProperty(items = modifier.TYPE , name = '' )
 
-
     solidify_thickness : FloatProperty(name = "Solidify_thick",precision = 4, update=modifier.apply)
     shrinkwrap_offset : FloatProperty(name = "wrap_ofset", precision = 4, update=modifier.apply)
     bevel_width : FloatProperty(name = "Bevel_width",update=modifier.apply)
     array_count : IntProperty(name = "Array_num",update=modifier.apply)
-
 
     array_offset_x : FloatProperty(name = "x", update=modifier.apply)
     array_offset_y : FloatProperty(name = "y",  update=modifier.apply)
@@ -157,6 +157,10 @@ class KIATOOLS_Props_OA(PropertyGroup):
     material_type : EnumProperty(items = MATERIAL_TYPE , name = 'type' )
     material_index : IntProperty( name = "number", min=0, max=10, default=1 )
 
+    #パーティクル関連
+    # collection_name : StringProperty(name="Collection", maxlen=63 )
+    # allcollections : CollectionProperty(type=PropertyGroup) 
+
 #---------------------------------------------------------------------------------------
 #UI
 #---------------------------------------------------------------------------------------
@@ -171,6 +175,7 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         self.layout.operator("kiatools.rename", icon='BLENDER')
         self.layout.operator("kiatools.skinningtools", icon='BLENDER')
         self.layout.operator("kiatools.materialtools", icon='BLENDER')
+        #self.layout.operator("kiatools.particletools", icon='BLENDER')
 
 
 class KIATOOLS_MT_kia_helper_tools(Operator):
@@ -374,12 +379,10 @@ class KIATOOLS_MT_object_applier(Operator):
         props = bpy.context.scene.kiatools_oa
         layout = self.layout
 
-        #row = layout.row(align=False)
         box = layout.box()
         row = box.row()
         row.prop_search(props, "scene_name", props, "allscene", icon='SCENE_DATA')
         row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
-
 
         box = layout.box()
         box.prop_search(props, "target_scene_name", props, "target_allscene", icon='SCENE_DATA')
@@ -392,9 +395,13 @@ class KIATOOLS_MT_object_applier(Operator):
 
         row = box.row()
         row.label( text = 'move' )
-        row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE')
+        row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE').mode = True
         row.operator("kiatools.move_collection" , icon = 'GROUP')
         
+        row = box.row()
+        row.label( text = 'copy' )
+        row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE').mode = False
+        row.operator("kiatools.move_collection" , icon = 'GROUP')
 
         box = layout.box()
         box.label(text = 'collection maintenance')
@@ -412,8 +419,6 @@ class KIATOOLS_MT_object_applier(Operator):
         row.prop(props, "merge_apply")
         row.prop(props, "merge_by_material")
 
-
-
         row = box.row()
         row.prop(props, "keeparmature_apply")
         row.prop(props, "keephair_apply")
@@ -421,6 +426,38 @@ class KIATOOLS_MT_object_applier(Operator):
         row = box.row()
         row.prop(props, "create_collection")
         row.prop(props, "deleteparticle_apply")
+
+
+# class KIATOOLS_MT_particletools(Operator):
+#     bl_idname = "kiatools.particletools"
+#     bl_label = "Particle Tools"
+
+#     def invoke(self, context, event):
+#         particle.set_collection()
+#         return context.window_manager.invoke_props_dialog(self)
+
+#     def execute(self, context):
+#         return{'FINISHED'}
+
+#     def draw(self, context):
+#         props = bpy.context.scene.kiatools_oa
+#         layout = self.layout
+
+#         box = layout.box()
+#         box.label(text = 'effect collection')
+#         row = box.row()
+#         row.prop_search(props, "collection_name", props, "allcollections", icon='SCENE_DATA')
+#         row.operator("kiatools.particle_effector_collection_assign" , icon = 'GROUP').mode = True
+#         row.operator("kiatools.particle_effector_collection_assign" , icon = 'X').mode = False
+
+
+#         box = layout.box()
+#         box.label(text = 'Hair Shape')
+#         row = box.row()
+#         row.prop_search(props, "collection_name", props, "allcollections", icon='SCENE_DATA')
+
+
+        #row.operator("kiatools.new_scene" , icon = 'DUPLICATE')
 
 
 #---------------------------------------------------------------------------------------
@@ -743,16 +780,15 @@ class KIATOOLS_OT_instance_replace(Operator):
 #---------------------------------------------------------------------------------------
 #ObjectApplier
 #---------------------------------------------------------------------------------------
-
 #選択モデルをリスト選択されたシーンに移動
 class KIATOOLS_OT_move_model(Operator):
     """選択したモデルをリスト選択されたシーンに移動する"""
     bl_idname = "kiatools.move_model"
     bl_label = "model"
+    mode : BoolProperty(default = True)
     def execute(self, context):
-        apply.move_object_to_other_scene()
+        apply.move_object_to_other_scene(self.mode)
         return {'FINISHED'}
-
 
 #選択コレクションをリスト選択されたシーンに移動
 class KIATOOLS_OT_move_collection(Operator):
@@ -762,7 +798,6 @@ class KIATOOLS_OT_move_collection(Operator):
     def execute(self, context):
         apply.move_collection_to_other_scene()
         return {'FINISHED'}
-
 
 #空のコレクションを削除
 class KIATOOLS_OT_remove_empty_collection(Operator):
@@ -1309,6 +1344,7 @@ class KIATOOLS_OT_rename_dropper(Operator):
 
 
 
+
 #---------------------------------------------------------------------------------------
 #ここから下のリネームツール、未対応
 #---------------------------------------------------------------------------------------
@@ -1380,6 +1416,7 @@ classes = (
     KIATOOLS_MT_curvetools,
     KIATOOLS_MT_materialtools,
     KIATOOLS_MT_etc,
+    KIATOOLS_MT_particletools,
 
     #Curve Tool
     KIATOOLS_OT_curve_create_with_bevel,
@@ -1466,8 +1503,10 @@ classes = (
 
     #マテリアル
     KIATOOLS_OT_material_assign_vertex_color,
-    KIATOOLS_OT_material_convert_vertex_color
+    KIATOOLS_OT_material_convert_vertex_color,
 
+    #パーティクル
+#    KIATOOLS_OT_particle_effector_collection_assign
 
 )
 
