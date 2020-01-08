@@ -788,15 +788,52 @@ class KIATOOLS_OT_instance_replace(Operator):
 #---------------------------------------------------------------------------------------
 #ObjectApplier
 #---------------------------------------------------------------------------------------
+def target_exist():
+    props = bpy.context.scene.kiatools_oa
+    target = props.target_scene_name
+    if target != '':
+        return True
+    else:
+        return False
+
+APPLY_TARGET_ERROR = 'ターゲットシーンが選択されていない'
+
 #選択モデルをリスト選択されたシーンに移動
 class KIATOOLS_OT_move_model(Operator):
     """選択したモデルをリスト選択されたシーンに移動する"""
     bl_idname = "kiatools.move_model"
     bl_label = "model"
     mode : BoolProperty(default = True)
+
     def execute(self, context):
-        apply.move_object_to_other_scene(self.mode)
+        if target_exist():
+            apply.move_object_to_other_scene(self.mode)
+        else:
+            self.report({'ERROR'}, APPLY_TARGET_ERROR)
         return {'FINISHED'}
+
+
+# class KIATOOLS_OT_move(Operator):
+#     mode : BoolProperty(default = True)
+
+#     def execute(self, context):
+#         if target_exist():
+#             self.do_command()
+#             #apply.move_object_to_other_scene(self.mode)
+#         else:
+#             self.report({'ERROR'}, 'ターゲットが選択されていない')
+#         return {'FINISHED'}
+
+#     def do_command(self):
+#         pass
+
+# class KIATOOLS_OT_move_collection(KIATOOLS_OT_move):
+#     """選択コレクションをリスト選択されたシーンに移動"""
+#     bl_idname = "kiatools.move_collection"
+#     bl_label = "collection"
+#     def do_command(self):
+#         apply.move_collection_to_other_scene(self.mode)
+
 
 #選択コレクションをリスト選択されたシーンに移動
 class KIATOOLS_OT_move_collection(Operator):
@@ -805,9 +842,12 @@ class KIATOOLS_OT_move_collection(Operator):
     bl_label = "collection"
     mode : BoolProperty(default = True)
     def execute(self, context):
-        apply.move_collection_to_other_scene(self.mode)
+        if target_exist():
+            apply.move_collection_to_other_scene(self.mode)
+        else:
+            self.report({'ERROR'}, APPLY_TARGET_ERROR)
         return {'FINISHED'}
-
+        
 #空のコレクションを削除
 class KIATOOLS_OT_remove_empty_collection(Operator):
     """空のコレクションを削除"""
@@ -834,7 +874,10 @@ class KIATOOLS_OT_apply_collection(Operator):
     bl_idname = "kiatools.apply_collection"
     bl_label = "col"
     def execute(self, context):
-        apply.apply_collection()
+        if target_exist():
+            apply.apply_collection()
+        else:
+            self.report({'ERROR'}, APPLY_TARGET_ERROR)
         return {'FINISHED'}
 
 class KIATOOLS_OT_apply_collection_instance(Operator):
@@ -842,7 +885,10 @@ class KIATOOLS_OT_apply_collection_instance(Operator):
     bl_idname = "kiatools.apply_collection_instance"
     bl_label = "colins"
     def execute(self, context):
-        apply.apply_collection_instance()
+        if target_exist():
+            apply.apply_collection_instance()
+        else:
+            self.report({'ERROR'}, APPLY_TARGET_ERROR)
         return {'FINISHED'}
 
 
@@ -1481,6 +1527,7 @@ classes = (
     KIATOOLS_OT_instance_mirror,
 
     #object applier
+
     KIATOOLS_MT_new_scene,
     KIATOOLS_OT_move_model,
     KIATOOLS_OT_apply_collection,

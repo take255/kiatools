@@ -467,7 +467,13 @@ def apply_collection_instance():
     domerge = doMerge()
     domergebymaterial = doMergeByMaterial()
     fix_scene = target_scene()
+
     target_col = bpy.data.scenes[fix_scene].collection
+    # try:
+    #     target_col = bpy.data.scenes[fix_scene].collection
+    # except:
+    #     print('ターゲットシーンが設定されていません')
+    #     return
 
     Duplicated.clear()
     current = bpy.context.window.scene.name
@@ -476,7 +482,19 @@ def apply_collection_instance():
     act = utils.getActiveObj()
 
     #トランスフォームは一度初期化。マトリックスは最後にかける
-    matrix = Matrix(act.matrix_world)
+    #コンストレインでミラーしている場合は、姿勢を戻したときにコンストレインが不具合を起こす
+    #コンストレインを切った状態のマトリックスを保持して対処
+
+    matrix = Matrix(act.matrix_world) #複製したものに使うマトリックス
+
+    #コンストレインをすべてオフにする
+    for const in act.constraints:
+        const.mute = True
+
+    bpy.context.view_layer.update()#コンストレイン解除時のマトリックスを強制アップデート
+    matrix_source = Matrix(act.matrix_world) #コピー元のモデルのためのマトリックス
+    print(matrix_source)
+    
     act.matrix_world = Matrix()
 
 
@@ -498,8 +516,12 @@ def apply_collection_instance():
         apply_model_modifier(dat)
 
 
-    #姿勢を元に戻す
-    act.matrix_world = matrix
+    #姿勢を元に戻し、コンストレインを復帰させる
+    #元のコンスト状態を保持しておらず、すべてONにする処理をしてるので、問題がおきるかも 
+    act.matrix_world = matrix_source
+    for const in act.constraints:
+        const.mute = False
+
 
     #コレクションにまとめ,強制マージ
     # put_into_collection(current_scene_name , Duplicated , utils.sceneActive(fix_scene))
