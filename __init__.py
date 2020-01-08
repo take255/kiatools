@@ -38,6 +38,7 @@ from . import rename
 from . import skinning
 from . import blendshape
 from . import material
+from . import transform
 #from . import particle
 
 imp.reload(utils)
@@ -53,6 +54,7 @@ imp.reload(rename)
 imp.reload(skinning)
 imp.reload(blendshape)
 imp.reload(material)
+imp.reload(transform)
 #imp.reload(particle)
 
 
@@ -236,6 +238,12 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.preserve_child" , icon = 'PINNED')
         box3.operator( "kiatools.restore_child" , icon = 'UNPINNED')
 
+        #トランスフォーム
+        box3 = col.box()
+        box3.label( text = 'transform' )
+        box3.operator( "kiatools.trasnform_apply_x" , icon = 'PINNED')
+        box3.operator( "kiatools.trasnform_reset_cursor_rot" , icon = 'PINNED')
+
         #instacne
         col = row.column()
         box3 = col.box()
@@ -396,12 +404,12 @@ class KIATOOLS_MT_object_applier(Operator):
         row = box.row()
         row.label( text = 'move' )
         row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE').mode = True
-        row.operator("kiatools.move_collection" , icon = 'GROUP')
+        row.operator("kiatools.move_collection" , icon = 'GROUP').mode = True
         
         row = box.row()
         row.label( text = 'copy' )
         row.operator("kiatools.move_model" , icon = 'OBJECT_DATAMODE').mode = False
-        row.operator("kiatools.move_collection" , icon = 'GROUP')
+        row.operator("kiatools.move_collection" , icon = 'GROUP').mode = False
 
         box = layout.box()
         box.label(text = 'collection maintenance')
@@ -795,8 +803,9 @@ class KIATOOLS_OT_move_collection(Operator):
     """選択コレクションをリスト選択されたシーンに移動"""
     bl_idname = "kiatools.move_collection"
     bl_label = "collection"
+    mode : BoolProperty(default = True)
     def execute(self, context):
-        apply.move_collection_to_other_scene()
+        apply.move_collection_to_other_scene(self.mode)
         return {'FINISHED'}
 
 #空のコレクションを削除
@@ -992,8 +1001,6 @@ class KIATOOLS_OT_preserve_collections(Operator):
 #---------------------------------------------------------------------------------------
 #transform
 #---------------------------------------------------------------------------------------
-
-#現在のコレクション表示状態を保持する
 class KIATOOLS_OT_swap_axis(Operator):
     """軸をスワップする"""
     bl_idname = "kiatools.swap_axis"
@@ -1012,6 +1019,26 @@ class KIATOOLS_OT_instance_mirror(Operator):
     def execute(self, context):
         locator.mirror(self.op)
         return {'FINISHED'}
+
+#オブジェクトをX軸だけapply
+class KIATOOLS_OT_trasnform_apply_x(Operator):
+    """X軸だけapply"""
+    bl_idname = "kiatools.trasnform_apply_x"
+    bl_label = "apply x"
+    op : StringProperty(default='x')
+    def execute(self, context):
+        transform.apply_x(self.op)
+        return {'FINISHED'}
+
+#カーソルの回転をリセット
+class KIATOOLS_OT_trasnform_reset_cursor_rot(Operator):
+    """X軸だけapply"""
+    bl_idname = "kiatools.trasnform_reset_cursor_rot"
+    bl_label = "reset cursor rot"    
+    def execute(self, context):
+        transform.reset_cursor_rot()
+        return {'FINISHED'}
+
 
 
 #---------------------------------------------------------------------------------------
@@ -1465,6 +1492,8 @@ classes = (
 
     #transform
     KIATOOLS_OT_swap_axis,
+    KIATOOLS_OT_trasnform_apply_x,
+    KIATOOLS_OT_trasnform_reset_cursor_rot,
 
     #etc
     KIATOOLS_OT_transform_rotate_axis,

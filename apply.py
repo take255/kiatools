@@ -348,20 +348,23 @@ def move_object_to_other_scene(mode):
 #---------------------------------------------------------------------------------------
 #コレクションを別のシーンに移動
 #---------------------------------------------------------------------------------------
-def move_collection_to_other_scene():
+def move_collection_to_other_scene(mode):
+    
     props = bpy.context.scene.kiatools_oa
     target = props.target_scene_name
 
     current = bpy.context.window.scene.name
     collection = bpy.context.view_layer.active_layer_collection 
 
+    print('test>>', collection.name)    
     c = bpy.data.collections[collection.name]
 
-    for col in utils.collection.get_parent(c):
-        col.children.unlink(c)
+    #現在のコレクションからアンリンク
+    if mode:
+        for col in utils.collection.get_parent(c):
+            col.children.unlink(c)
         
     bpy.data.scenes[target].collection.children.link(c)
-
 
     utils.sceneActive(target)
     scene.set_current()
