@@ -21,7 +21,7 @@ imp.reload(utils)
 imp.reload(scene)
 imp.reload(locator)
 
-
+ApplyCollectionMode = False #apply_collectionで apply_collection_instanceを利用するためのフラグ
 Collections = set()
 #Collections_no_children = set() #子供コレクションを持っていないコレクション
 
@@ -250,7 +250,6 @@ def apply_model_sortout(ob , new_name , isMirror ):
 
     #既にモデルが存在していたら削除する
     #インスタンス実体化のときは無効
-    print('doDelSame>>',doDelSame)
     if doDelSame:
         if bpy.data.objects.get(new_name) is not None:
             objs.remove(objs[new_name], do_unlink = True)
@@ -374,7 +373,9 @@ def move_collection_to_other_scene(mode):
 #コレクションに所属しているオブジェクトをapply
 #---------------------------------------------------------------------------------------
 def apply_collection():
-    #props = bpy.context.scene.kiatools_oa
+    global ApplyCollectionMode
+    ApplyCollectionMode = True #コレクションインスタンスの実体化時に強制マージする
+
     current_scene_name = bpy.context.scene.name
     fix_scene = target_scene()
 
@@ -398,8 +399,14 @@ def apply_collection():
             result.append( apply_model_sortout( ob , ob.name + '_tmp', False ) )
         else:
             utils.act(ob)
-            act = locator.instance_substantial()
-            result.append( apply_model_sortout( act , act.name + '_tmp', False ) )
+            #apply_collection_instanceでは強制マージしておきたい
+            act = apply_collection_instance()
+            #print(act.name)
+            #result.append( apply_model_sortout( act , act.name + '_tmp', False ) )
+            
+            col_name = ob.users_collection[0].name
+            result.append( PublishedData( act , col_name , False ) )# <<　複製されているモデルなのでapply_model_sortoutは使わない
+            #utils.scene.activebyname(current_scene_name)
 
     for dat in result:
         apply_model_modifier(dat)
@@ -411,6 +418,7 @@ def apply_collection():
     bpy.ops.object.join()
 
     utils.getActiveObj().name = new_name
+    ApplyCollectionMode = False
 
 
 #---------------------------------------------------------------------------------------
@@ -419,7 +427,6 @@ def apply_collection():
 Duplicated = []
 doDelSame =True
 
-#def instance_substantial_loop( col , current ,matrix):
 def instance_substantial_loop( col , current ):
     act = utils.getActiveObj()
     col_org = locator.instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
@@ -461,19 +468,22 @@ def instance_substantial_loop( col , current ):
 def apply_collection_instance():
 
     global doDelSame
+    global ApplyCollectionMode
+
     doDelSame = False #同名モデル削除しない
 
-    #シーンの切り替えがあるため、カレントシーンの設定をここで取得しておく。
-    domerge = doMerge()
+    #強制マージがONならマージ。OFFならメニューの設定に準ずる
+    if ApplyCollectionMode:
+        domerge = True
+    else:
+        domerge = doMerge()
+
+
     domergebymaterial = doMergeByMaterial()
     fix_scene = target_scene()
+    #シーンの切り替えがあるため、カレントシーンの設定をここで取得しておく。
 
     target_col = bpy.data.scenes[fix_scene].collection
-    # try:
-    #     target_col = bpy.data.scenes[fix_scene].collection
-    # except:
-    #     print('ターゲットシーンが設定されていません')
-    #     return
 
     Duplicated.clear()
     current = bpy.context.window.scene.name
@@ -500,15 +510,21 @@ def apply_collection_instance():
 
     if act.instance_type != 'COLLECTION':
         return
+
+
+    #モデルを置くコレクションを指定
     col = utils.collection.create('01_substantial')
+    # if not ApplyCollectionMode:
+    #     col = utils.collection.create('01_substantial')
+    # else:
+    #     col = utils.collection.root()
+
 
     #このコレクションがカレントシーンにない場合はエラーになる
     #コレクションが無い場合はカレントにコピーしてくる
     if not utils.collection.exist(col):
         utils.collection.move_col(col)
     
-    #instance_substantial_loop( col , current , matrix )
-    #instance_substantial_loop( col , current , Matrix() )
     instance_substantial_loop( col , current )
 
     for dat in Duplicated:
@@ -524,17 +540,21 @@ def apply_collection_instance():
 
 
     #コレクションにまとめ,強制マージ
-    # put_into_collection(current_scene_name , Duplicated , utils.sceneActive(fix_scene))
-    # utils.multiSelection([x.obj for x in result])
-
+    # apply_collectionで利用する場合はmoveしない
     if domerge:
         utils.multiSelection([x.obj for x in Duplicated])
         bpy.ops.object.join()
         transform_apply()
 
         act = utils.getActiveObj()
-        utils.collection.move_obj( act , target_col )
+
+        if not ApplyCollectionMode:
+            utils.collection.move_obj( act , target_col )
+        else:
+            utils.collection.move_obj_to_root(act)
+
         act.matrix_world =  matrix @ act.matrix_world
+        utils.act(act)
 
     #マテリアルでモデルを仕分けする
     elif domergebymaterial:
@@ -549,7 +569,6 @@ def apply_collection_instance():
                 else:
                     dic[mat] = [ob]
 
-            #utils.collection.move_obj( ob , target_col )
 
         for v in dic.values():
             utils.deselectAll()
@@ -558,18 +577,24 @@ def apply_collection_instance():
             bpy.ops.object.join()
             transform_apply()
             act = utils.getActiveObj()
-            #utils.collection.move_obj( utils.getActiveObj() , target_col )
-            utils.collection.move_obj( act , target_col )
+
+            if not ApplyCollectionMode:
+                utils.collection.move_obj( act , target_col )
+
             act.matrix_world =  matrix @ act.matrix_world
 
-
-
+    #マージはしない
     else:
         for ob in [x.obj for x in Duplicated]:
-            utils.collection.move_obj( ob , target_col )
-            ob.matrix_world =  matrix @ ob.matrix_world 
 
-    utils.sceneActive(fix_scene)
+            if not ApplyCollectionMode:
+                utils.collection.move_obj( ob , target_col )
+
+            ob.matrix_world =  matrix @ ob.matrix_world
+
+    if not ApplyCollectionMode:
+        utils.sceneActive(fix_scene)
+
 
     doDelSame = True
     return utils.getActiveObj()

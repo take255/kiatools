@@ -881,7 +881,7 @@ class KIATOOLS_OT_apply_collection(Operator):
         return {'FINISHED'}
 
 class KIATOOLS_OT_apply_collection_instance(Operator):
-    """選択したコレクション以下のモデルが対象\nコレクションのモデルはジョインされる\n名前はコレクション名+orgcとする"""
+    """選択したコレクションインスタンスが対象"""
     bl_idname = "kiatools.apply_collection_instance"
     bl_label = "colins"
     def execute(self, context):
