@@ -39,6 +39,7 @@ from . import skinning
 from . import blendshape
 from . import material
 from . import transform
+from . import modeling
 #from . import particle
 
 imp.reload(utils)
@@ -55,6 +56,7 @@ imp.reload(skinning)
 imp.reload(blendshape)
 imp.reload(material)
 imp.reload(transform)
+imp.reload(modeling)
 #imp.reload(particle)
 
 
@@ -159,6 +161,10 @@ class KIATOOLS_Props_OA(PropertyGroup):
     material_type : EnumProperty(items = MATERIAL_TYPE , name = 'type' )
     material_index : IntProperty( name = "number", min=0, max=10, default=1 )
 
+    #揺れ骨関連
+    cloth_open : BoolProperty( name = "open" )
+
+
     #パーティクル関連
     # collection_name : StringProperty(name="Collection", maxlen=63 )
     # allcollections : CollectionProperty(type=PropertyGroup) 
@@ -262,6 +268,10 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         row.operator( "kiatools.instance_mirror" , text = 'x' ).op = 'x'
         row.operator( "kiatools.instance_mirror" , text = 'y' ).op = 'y'
         row.operator( "kiatools.instance_mirror" , text = 'z' ).op = 'z'
+
+        box5 = col.box()
+        box5.label( text = 'modeling' )
+        box5.operator( "kiatools.modeling_del_half_x")
 
 
 
@@ -587,6 +597,7 @@ class KIATOOLS_MT_etc(Operator):
 
 
     def draw(self, context):
+        props = bpy.context.scene.kiatools_oa
         layout=self.layout
 
         col = layout.column()
@@ -634,6 +645,10 @@ class KIATOOLS_MT_etc(Operator):
         row = box.row()        
 
         box.operator("kiatools.invert_pose_blendshape")
+
+        row = box.row()
+        row.operator("kiatools.create_mesh_from_bone")
+        row.prop(props,"cloth_open")
 
 #---------------------------------------------------------------------------------------
 #Operator
@@ -1085,7 +1100,17 @@ class KIATOOLS_OT_trasnform_reset_cursor_rot(Operator):
         transform.reset_cursor_rot()
         return {'FINISHED'}
 
-
+#---------------------------------------------------------------------------------------
+#modering
+#---------------------------------------------------------------------------------------
+#モデルの-Xを削除
+class KIATOOLS_OT_modeling_del_half_x(Operator):
+    """モデルの-X側を削除"""
+    bl_idname = "kiatools.modeling_del_half_x"
+    bl_label = "del half x"    
+    def execute(self, context):
+        modeling.del_half_x()
+        return {'FINISHED'}
 
 #---------------------------------------------------------------------------------------
 #etc
@@ -1126,6 +1151,15 @@ class KIATOOLS_OT_invert_pose_blendshape(Operator):
     def execute(self, context):    
         blendshape.invert()
         return {'FINISHED'}        
+
+class KIATOOLS_OT_create_mesh_from_bone(Operator):
+    """選択ボーンからメッシュを作成する。ルートを選択して実行。名前でソートされる。"""
+    bl_idname = "kiatools.create_mesh_from_bone"
+    bl_label = "create mesh from bone"
+    def execute(self, context):    
+        etc.create_mesh_from_bone()
+        return {'FINISHED'}        
+
 
 #---------------------------------------------------------------------------------------
 #リファレンス関連ツール
@@ -1549,6 +1583,7 @@ classes = (
     KIATOOLS_OT_refernce_make_proxy,
     KIATOOLS_OT_refernce_make_link,
     KIATOOLS_OT_invert_pose_blendshape,
+    KIATOOLS_OT_create_mesh_from_bone,
 
     #リネーム
     KIATOOLS_MT_rename,
@@ -1581,6 +1616,8 @@ classes = (
     KIATOOLS_OT_material_assign_vertex_color,
     KIATOOLS_OT_material_convert_vertex_color,
 
+    #モデリング
+    KIATOOLS_OT_modeling_del_half_x
     #パーティクル
 #    KIATOOLS_OT_particle_effector_collection_assign
 

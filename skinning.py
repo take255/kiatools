@@ -163,7 +163,7 @@ def delete_notexist_vtxgrp():
                 #print(mod.object.name)
                 amt = mod.object
                 #scene_obj.active = amt
-                Utils.activeObj(amt)
+                utils.activeObj(amt)
                 bpy.ops.object.mode_set(mode='EDIT')
 
                 #アーマチュア内の骨をリストアップしてセットに格納
@@ -173,7 +173,7 @@ def delete_notexist_vtxgrp():
         #頂点グループを走査してボーンのセットに含まれているかどうか調査
         bpy.ops.object.mode_set(mode='OBJECT')
         #scene_obj.active = obj
-        Utils.activeObj(obj)
+        utils.activeObj(obj)
         for group in obj.vertex_groups:
             if (group.name in boneset) == False:
                 bpy.context.object.vertex_groups.remove(group)
