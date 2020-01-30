@@ -238,6 +238,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box2.operator( "kiatools.replace_locator" , icon = 'MODIFIER')
         box2.operator( "kiatools.replace_locator_facenormal" , icon = 'MODIFIER')
         box2.operator( "kiatools.group" , icon = 'MODIFIER')
+        box2.operator( "kiatools.locator_tobone" , icon = 'MODIFIER')
 
         box3 = col.box()
         box3.label( text = 'child' )
@@ -263,11 +264,20 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
 
         box4 = col.box()
-        box4.label( text = 'instance mirror' )
+        box4.label( text = 'instance mirror transform' )
         row = box4.row()
         row.operator( "kiatools.instance_mirror" , text = 'x' ).op = 'x'
         row.operator( "kiatools.instance_mirror" , text = 'y' ).op = 'y'
         row.operator( "kiatools.instance_mirror" , text = 'z' ).op = 'z'
+
+        box6 = col.box()
+        box6.label( text = 'instance mirror geom' )
+        row = box6.row()
+        row.operator( "kiatools.instance_mirror_geom" , text = 'x' ).op = 'x'
+        row.operator( "kiatools.instance_mirror_geom" , text = 'y' ).op = 'y'
+        row.operator( "kiatools.instance_mirror_geom" , text = 'z' ).op = 'z'
+
+
 
         box5 = col.box()
         box5.label( text = 'modeling' )
@@ -745,6 +755,16 @@ class KIATOOLS_OT_group(Operator):
         locator.group()
         return {'FINISHED'}
 
+class KIATOOLS_OT_locator_tobone(Operator):
+    """ボーンにロケータを挟んでコンストする\nモデルを選択し、コンストしたいアーマチュアボーンを選択して実行する"""
+    bl_idname = "kiatools.locator_tobone"
+    bl_label = "to Bone"
+
+    def execute(self, context):
+        locator.tobone()
+        return {'FINISHED'}
+
+
 #親子付けの際、ワールドのトランスフォームを維持したいので親のマトリックスを掛け合わせる
 class KIATOOLS_OT_preserve_child(Operator):
     """一時的に子供を別ノードに逃がす。親を選択して実行する"""
@@ -1080,6 +1100,17 @@ class KIATOOLS_OT_instance_mirror(Operator):
     def execute(self, context):
         locator.mirror(self.op)
         return {'FINISHED'}
+
+#インスタンスをミラーするが、トランスフォームのコンストレインをしない
+class KIATOOLS_OT_instance_mirror_geom(Operator):
+    """インスタンスをX軸ミラーする\nトランスフォームのコンストレインをしない"""
+    bl_idname = "kiatools.instance_mirror_geom"
+    bl_label = ""
+    op : StringProperty(default='x')
+    def execute(self, context):
+        locator.mirror_geom(self.op)
+        return {'FINISHED'}
+
 
 #オブジェクトをX軸だけapply
 class KIATOOLS_OT_trasnform_apply_x(Operator):
@@ -1533,6 +1564,8 @@ classes = (
     KIATOOLS_OT_curve_assign_liner_bevel,
     KIATOOLS_OT_curve_select_bevel,
 
+
+    #helper
     KIATOOLS_OT_replace_locator,
     KIATOOLS_OT_replace_locator_facenormal,
     KIATOOLS_OT_group,
@@ -1541,6 +1574,7 @@ classes = (
     KIATOOLS_OT_collections_hide,
     KIATOOLS_OT_preserve_collections,
     KIATOOLS_OT_collection_sort,
+    KIATOOLS_OT_locator_tobone,
 
     #instance
     KIATOOLS_OT_instance_select_collection,
@@ -1559,6 +1593,7 @@ classes = (
     #コンストレイン
     KIATOOLS_OT_constraint_asign,
     KIATOOLS_OT_instance_mirror,
+    KIATOOLS_OT_instance_mirror_geom,
 
     #object applier
 

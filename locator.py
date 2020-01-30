@@ -40,6 +40,62 @@ def create_locator_collection():
     return col
 
 
+
+def tobone():
+    selected = utils.selected()
+    result = []
+
+    #amt = [x for x in selected if x.type == 'ARMATURE']
+    amt = utils.getActiveObj()
+    bone  = utils.bone.get_active_bone()
+    matrix = Matrix(bone.matrix)
+    
+    matrix.invert()
+    location = Vector(bone.head)
+    mat_loc = Matrix.Translation(Vector(bone.head))
+
+    #アーマチュアをエディットモードのままにしておくと選択がおかしくなるのでいったん全選択解除
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+    bpy.ops.object.select_all(action='DESELECT')
+
+    #ロケータ生成
+    bpy.ops.object.empty_add(type='PLAIN_AXES')
+    empty = bpy.context.active_object
+    #empty.name =  name + '_constlocator'
+
+    c =empty.constraints.new('COPY_TRANSFORMS')
+    c.target = amt
+    c.subtarget = bone.name
+    c.target_space ='WORLD'
+    c.owner_space = 'WORLD'
+    #matrix = Matrix(empty.matrix)
+    bpy.context.view_layer.update()
+    # location = Vector(empty.location)
+    # matrix = empty.matrix_world
+    # matrix.invert()
+    # matrix = Matrix(empty.matrix_world)
+    # matrix.invert()
+
+
+    for obj in selected:
+        if obj.type != 'ARMATURE':
+            # m = Matrix(obj.matrix_world)
+            obj.parent = empty
+            bpy.context.view_layer.update()
+            m = mat_loc @ matrix @ Matrix(obj.matrix_world)
+            #m_rot = m.to_3x3()#位置をクリアする
+
+            #obj.matrix_world = m_rot.to_4x4()
+            obj.matrix_world = m
+            #obj.location = location
+
+
+
+
+
+
+
+
 #---------------------------------------------------------------------------------------
 def create_locator(name , matrix):
 
@@ -493,6 +549,67 @@ def const_setting( ob_source , ob_target , source , dest , maptype , suffix ):
     for x,val in zip(( 'x' , 'y' , 'z' ),dest):
         exec('constraint.to_min_%s%s = %02f' % ( x , suffix , val[0]) )
         exec('constraint.to_max_%s%s = %02f' % ( x , suffix , val[1]) )
+
+#---------------------------------------------------------------------------------------
+#オブジェクトをインスタンスしてX軸で見た目を反転する
+#---------------------------------------------------------------------------------------
+def mirror_geom(axis):
+    ob_source = utils.getActiveObj()
+    bpy.ops.object.duplicate_move_linked()
+    ob_target = utils.getActiveObj()
+    ob_target.parent = None
+
+
+    m = Matrix(ob_target.matrix_world)
+    m.transpose()
+    x = [-m[0][0], m[0][1], m[0][2] ,0]
+    y = [-m[1][0], m[1][1], m[1][2] ,0]
+    z = [-m[2][0], m[2][1], m[2][2] ,0]
+    l = [-m[3][0], m[3][1], m[3][2] ,0]
+    # y = [-m[4], m[5], m[6], 0]
+    # z = [-m[8], m[9], m[10],0]
+    # pos = [-m[12], m[13], m[14],0]
+
+    m_new =  Matrix([x,y,z,l])
+    m_new.transpose()
+
+    ob_target.matrix_world = m_new
+
+    # loc = Vector(ob_target.location)
+    # scale = Vector(ob_target.scale)
+
+    # ob_target.location = Vector((-loc[0] , loc[1] , loc[2] ))
+    # ob_target.scale = Vector((-loc[0] , loc[1] , loc[2] ))
+
+
+#     ob_target.matrix_world = Matrix()
+
+#     if axis == 'x':
+#         const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
+#         const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
+#         const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
+
+#     if axis == 'y':
+#         const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'LOCATION' ,'' )
+#         const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE_Y , CONST_PARAM_ROT_DEST_Y ,'ROTATION' ,'_rot')
+#         const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'SCALE' ,'_scale')
+
+
+
+# def const_setting( ob_source , ob_target , source , dest , maptype , suffix ):
+#     constraint =ob_target.constraints.new('TRANSFORM')
+#     constraint.target = ob_source
+#     constraint.map_from = maptype
+#     constraint.map_to = maptype
+
+#     for x,val in zip(( 'x' , 'y' , 'z' ) , source ):
+#         exec('constraint.from_min_%s%s = %02f' % (x , suffix , val[0]) )
+#         exec('constraint.from_max_%s%s = %02f' % (x , suffix , val[1]) )
+
+#     for x,val in zip(( 'x' , 'y' , 'z' ),dest):
+#         exec('constraint.to_min_%s%s = %02f' % ( x , suffix , val[0]) )
+#         exec('constraint.to_max_%s%s = %02f' % ( x , suffix , val[1]) )
+
 
 
 #replace

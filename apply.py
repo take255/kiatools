@@ -321,6 +321,7 @@ def apply_model_modifier(dat):
         mod = dat.obj.modifiers.new( 'mirror' , type = 'MIRROR' )
         bpy.ops.object.modifier_apply(modifier=mod.name)   
 
+    #スケールにマイナスが入っているならアプライする
 
 #---------------------------------------------------------------------------------------
 #オブジェクトを別のシーンに移動
@@ -427,7 +428,7 @@ def apply_collection():
 Duplicated = []
 doDelSame =True
 
-def instance_substantial_loop( col , current ):
+def instance_substantial_loop( col , current , matrix):
     act = utils.getActiveObj()
     col_org = locator.instance_select_collection() #インスタンス元のコレクションのオブジェクトを選択する
 
@@ -449,14 +450,31 @@ def instance_substantial_loop( col , current ):
         utils.act(ob)
         if ob.data == None:
             if ob.instance_type == 'COLLECTION':
-                #m = ob.matrix_world
+                m = matrix @ ob.matrix_world
                 #instance_substantial_loop(col , current , m )
-                instance_substantial_loop(col , current )
+                instance_substantial_loop(col , current ,m)
         else:
             dat = apply_model_sortout( ob , ob.name + '_applied', False)#sortout内で複製
             Duplicated.append( dat )
-            utils.collection.move_obj( dat.obj , col )
-            #dat.obj.matrix_world =  matrix @ dat.obj.matrix_world 
+
+            obj = dat.obj
+            utils.collection.move_obj( obj , col )
+
+            utils.act(obj)
+            #ブーリアンモディファイヤはマトリックスをかける前に適用する必要がある
+            for mod in obj.modifiers:
+                if (mod.type == 'ARMATURE') and doKeepArmature():#アーマチュアをキープする
+                    pass
+
+                elif mod.show_viewport == False:#モディファイヤが非表示なら削除する
+                    bpy.context.object.modifiers.remove(mod)
+                else:
+                    try:#モディファイヤのターゲットがない場合など、適用でエラーが出る場合は削除
+                        bpy.ops.object.modifier_apply(modifier=mod.name)
+                    except:
+                        bpy.context.object.modifiers.remove(mod)
+
+            obj.matrix_world =  matrix @ obj.matrix_world 
 
         act = utils.getActiveObj()
 
@@ -525,11 +543,13 @@ def apply_collection_instance():
     if not utils.collection.exist(col):
         utils.collection.move_col(col)
     
-    instance_substantial_loop( col , current )
+    instance_substantial_loop( col , current ,Matrix())
 
     for dat in Duplicated:
         utils.scene.move_obj_scene(dat.obj)#オブジェクトが他のシーンある場合はそこに移動する
         apply_model_modifier(dat)
+        utils.act(dat.obj)
+        transform_apply()
 
 
     #姿勢を元に戻し、コンストレインを復帰させる
@@ -608,6 +628,9 @@ def transform_apply():
     act = utils.getActiveObj()
     if len( [ x for x in act.scale if x < 0 ] ) > 0:
         utils.mode_e()
+        bpy.ops.mesh.select_all(action='DESELECT')#全選択解除してからの
+        bpy.ops.mesh.select_all(action='TOGGLE')#全選択
+
         bpy.ops.mesh.flip_normals()
         utils.mode_o()
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True, properties=True)
