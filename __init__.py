@@ -162,7 +162,7 @@ class KIATOOLS_Props_OA(PropertyGroup):
     material_index : IntProperty( name = "number", min=0, max=10, default=1 )
 
     #揺れ骨関連
-    cloth_open : BoolProperty( name = "open" )
+    #cloth_open : BoolProperty( name = "open" )
 
 
     #パーティクル関連
@@ -656,9 +656,9 @@ class KIATOOLS_MT_etc(Operator):
 
         box.operator("kiatools.invert_pose_blendshape")
 
-        row = box.row()
-        row.operator("kiatools.create_mesh_from_bone")
-        row.prop(props,"cloth_open")
+        # row = box.row()
+        # row.operator("kiatools.create_mesh_from_bone")
+        # row.prop(props,"cloth_open")
 
 #---------------------------------------------------------------------------------------
 #Operator
@@ -1183,13 +1183,13 @@ class KIATOOLS_OT_invert_pose_blendshape(Operator):
         blendshape.invert()
         return {'FINISHED'}        
 
-class KIATOOLS_OT_create_mesh_from_bone(Operator):
-    """選択ボーンからメッシュを作成する。ルートを選択して実行。名前でソートされる。"""
-    bl_idname = "kiatools.create_mesh_from_bone"
-    bl_label = "create mesh from bone"
-    def execute(self, context):    
-        etc.create_mesh_from_bone()
-        return {'FINISHED'}        
+# class KIATOOLS_OT_create_mesh_from_bone(Operator):
+#     """選択ボーンからメッシュを作成する。ルートを選択して実行。名前でソートされる。"""
+#     bl_idname = "kiatools.create_mesh_from_bone"
+#     bl_label = "create mesh from bone"
+#     def execute(self, context):    
+#         etc.create_mesh_from_bone()
+#         return {'FINISHED'}        
 
 
 #---------------------------------------------------------------------------------------
@@ -1618,7 +1618,7 @@ classes = (
     KIATOOLS_OT_refernce_make_proxy,
     KIATOOLS_OT_refernce_make_link,
     KIATOOLS_OT_invert_pose_blendshape,
-    KIATOOLS_OT_create_mesh_from_bone,
+    #KIATOOLS_OT_create_mesh_from_bone,
 
     #リネーム
     KIATOOLS_MT_rename,

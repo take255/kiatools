@@ -9,125 +9,125 @@ from . import utils
 imp.reload(utils)
 
 
-def bone_chain_loop( bone , chain ,vtxarray ,bonenamearray):
-    amt = bpy.context.active_object
-    for b in amt.data.edit_bones:
-        if b.parent == bone:
-            chain.append(b.name)
-            bonenamearray.append(b.name)
-            vtxarray.append(b.tail)
-            bone_chain_loop(b,chain ,vtxarray,bonenamearray)
+# def bone_chain_loop( bone , chain ,vtxarray ,bonenamearray):
+#     amt = bpy.context.active_object
+#     for b in amt.data.edit_bones:
+#         if b.parent == bone:
+#             chain.append(b.name)
+#             bonenamearray.append(b.name)
+#             vtxarray.append(b.tail)
+#             bone_chain_loop(b,chain ,vtxarray,bonenamearray)
             
 
-#ジョイントのクラスタからメッシュを作成
-#
-def create_mesh_from_bone():
-    props = bpy.context.scene.kiatools_oa
-    amt = bpy.context.object
-    selected = bpy.context.selected_bones
-    num_col = 0
-    num_row = len(selected)
+# #ジョイントのクラスタからメッシュを作成
+# #
+# def create_mesh_from_bone():
+#     props = bpy.context.scene.kiatools_oa
+#     amt = bpy.context.object
+#     selected = bpy.context.selected_bones
+#     num_col = 0
+#     num_row = len(selected)
 
 
-    #頂点座標の配列生成
-    #最初のボーンのheadだけの座標を入れれば、残りはtailの座標だけ入れていけばOK
-    vtxarray = []
+#     #頂点座標の配列生成
+#     #最初のボーンのheadだけの座標を入れれば、残りはtailの座標だけ入れていけばOK
+#     vtxarray = []
 
-    bonenamearray = []
-    chainarray = []
-    for bone in selected:
-        chain = [bone.name]
-        bonenamearray.append(bone.name)
-        vtxarray += [bone.head , bone.tail ]
-        bone_chain_loop( bone , chain ,vtxarray ,bonenamearray)
-        num_col = len(chain)
-        chainarray.append(chain)
+#     bonenamearray = []
+#     chainarray = []
+#     for bone in selected:
+#         chain = [bone.name]
+#         bonenamearray.append(bone.name)
+#         vtxarray += [bone.head , bone.tail ]
+#         bone_chain_loop( bone , chain ,vtxarray ,bonenamearray)
+#         num_col = len(chain)
+#         chainarray.append(chain)
 
-    polyarray = []
-    ic = num_col + 1 #コラムの増分
+#     polyarray = []
+#     ic = num_col + 1 #コラムの増分
 
-    #ポリゴンのインデックス生成
-    #円筒状にしたくない場合はrowを１つ減らす
-    if props.cloth_open:
-        row = num_row -1
-    else:
-        row = num_row
+#     #ポリゴンのインデックス生成
+#     #円筒状にしたくない場合はrowを１つ減らす
+#     if props.cloth_open:
+#         row = num_row -1
+#     else:
+#         row = num_row
 
-    for c in range(row):
-        array = []
-        for r in range(num_col):
-            #シリンダ状にループさせたいので、最後のrowは一番目のrowを指定
-            if c == num_row - 1:
-                array = [
-                    r + ic*c ,
-                    r + 1 + ic*c ,
-                    r + 1  ,
-                    r 
-                    ]
+#     for c in range(row):
+#         array = []
+#         for r in range(num_col):
+#             #シリンダ状にループさせたいので、最後のrowは一番目のrowを指定
+#             if c == num_row - 1:
+#                 array = [
+#                     r + ic*c ,
+#                     r + 1 + ic*c ,
+#                     r + 1  ,
+#                     r 
+#                     ]
 
-            else:
-                array = [
-                    r + ic*c ,
-                    r + 1 + ic*c ,
-                    r + 1 + ic*(c + 1) ,
-                    r + ic*(c + 1)
-                    ]
+#             else:
+#                 array = [
+#                     r + ic*c ,
+#                     r + 1 + ic*c ,
+#                     r + 1 + ic*(c + 1) ,
+#                     r + ic*(c + 1)
+#                     ]
 
-            polyarray.append(array)
+#             polyarray.append(array)
     
-    #メッシュの生成
-    mesh_data = bpy.data.meshes.new("cube_mesh_data")
-    mesh_data.from_pydata(vtxarray, [], polyarray)
-    mesh_data.update()
+#     #メッシュの生成
+#     mesh_data = bpy.data.meshes.new("cube_mesh_data")
+#     mesh_data.from_pydata(vtxarray, [], polyarray)
+#     mesh_data.update()
 
 
-    obj = bpy.data.objects.new('test', mesh_data)
+#     obj = bpy.data.objects.new('test', mesh_data)
 
-    scene = bpy.context.scene
-    utils.sceneLink(obj)
-    utils.select(obj,True)
-
-
-    #IKターゲットの頂点グループ作成    
-    #ウェイト値の設定
-    for j,chain in enumerate(chainarray):
-        for i,bone in enumerate(chain):
-            obj.vertex_groups.new(name = bone)
-            index = 1 + i + j * (num_col+1)
-
-            vg = obj.vertex_groups[bone]
-            vg.add( [index], 1.0, 'REPLACE' )
+#     scene = bpy.context.scene
+#     utils.sceneLink(obj)
+#     utils.select(obj,True)
 
 
-    #IKのセットアップ
-    utils.mode_o()
-    utils.act(amt)
-    utils.mode_p()
+#     #IKターゲットの頂点グループ作成    
+#     #ウェイト値の設定
+#     for j,chain in enumerate(chainarray):
+#         for i,bone in enumerate(chain):
+#             obj.vertex_groups.new(name = bone)
+#             index = 1 + i + j * (num_col+1)
+
+#             vg = obj.vertex_groups[bone]
+#             vg.add( [index], 1.0, 'REPLACE' )
 
 
-    for j,chain in enumerate(chainarray):
-        for i,bone in enumerate(chain):
-
-            jnt = amt.pose.bones[bone]
-            c = jnt.constraints.new('IK')
-            c.target = obj
-            c.subtarget = bone
-            c.chain_count = 1
+#     #IKのセットアップ
+#     utils.mode_o()
+#     utils.act(amt)
+#     utils.mode_p()
 
 
-    #クロスの設定
-    #ピンの頂点グループを設定する
-    pin = 'pin'
-    obj.vertex_groups.new(name = pin)
-    for c in range(num_row):
-        index =  c * ( num_col + 1 )
-        vg = obj.vertex_groups[pin]
-        vg.add( [index], 1.0, 'REPLACE' )
+#     for j,chain in enumerate(chainarray):
+#         for i,bone in enumerate(chain):
+
+#             jnt = amt.pose.bones[bone]
+#             c = jnt.constraints.new('IK')
+#             c.target = obj
+#             c.subtarget = bone
+#             c.chain_count = 1
 
 
-    #bpy.ops.object.modifier_add(type='CLOTH')
-    mod = obj.modifiers.new("cloth", 'CLOTH')
-    mod.settings.vertex_group_mass = "pin"
+#     #クロスの設定
+#     #ピンの頂点グループを設定する
+#     pin = 'pin'
+#     obj.vertex_groups.new(name = pin)
+#     for c in range(num_row):
+#         index =  c * ( num_col + 1 )
+#         vg = obj.vertex_groups[pin]
+#         vg.add( [index], 1.0, 'REPLACE' )
+
+
+#     #bpy.ops.object.modifier_add(type='CLOTH')
+#     mod = obj.modifiers.new("cloth", 'CLOTH')
+#     mod.settings.vertex_group_mass = "pin"
 
 #---------------------------------------------------------------------------------------
 #ローカル軸で回転

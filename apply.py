@@ -458,7 +458,7 @@ def instance_substantial_loop( col , current , matrix):
             Duplicated.append( dat )
 
             obj = dat.obj
-            utils.collection.move_obj( obj , col )
+            #utils.collection.move_obj( obj , col )
 
             utils.act(obj)
             #ブーリアンモディファイヤはマトリックスをかける前に適用する必要がある
@@ -569,11 +569,13 @@ def apply_collection_instance():
         act = utils.getActiveObj()
 
         if not ApplyCollectionMode:
-            utils.collection.move_obj( act , target_col )
+            utils.collection.move_obj( act , target_col )# Here, move to target scene.
         else:
             utils.collection.move_obj_to_root(act)
 
         act.matrix_world =  matrix @ act.matrix_world
+
+        utils.scene.move_obj_scene(act)#In the case not exist obj in current scene, move to fit scene.
         utils.act(act)
 
     #マテリアルでモデルを仕分けする
