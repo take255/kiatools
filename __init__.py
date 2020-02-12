@@ -250,6 +250,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.label( text = 'transform' )
         box3.operator( "kiatools.trasnform_apply_x" , icon = 'PINNED')
         box3.operator( "kiatools.trasnform_reset_cursor_rot" , icon = 'PINNED')
+        box3.operator( "kiatools.modeling_pivot_by_facenormal" , icon = 'PINNED')
 
         #instacne
         col = row.column()
@@ -1143,6 +1144,15 @@ class KIATOOLS_OT_modeling_del_half_x(Operator):
         modeling.del_half_x()
         return {'FINISHED'}
 
+class KIATOOLS_OT_modeling_pivot_by_facenormal(Operator):
+    """モデルの-X側を削除"""
+    bl_idname = "kiatools.modeling_pivot_by_facenormal"
+    bl_label = "pivot_by_facenormal"    
+    def execute(self, context):
+        modeling.pivot_by_facenormal()
+        return {'FINISHED'}
+
+
 #---------------------------------------------------------------------------------------
 #etc
 #---------------------------------------------------------------------------------------
@@ -1652,7 +1662,8 @@ classes = (
     KIATOOLS_OT_material_convert_vertex_color,
 
     #モデリング
-    KIATOOLS_OT_modeling_del_half_x
+    KIATOOLS_OT_modeling_del_half_x,
+    KIATOOLS_OT_modeling_pivot_by_facenormal
     #パーティクル
 #    KIATOOLS_OT_particle_effector_collection_assign
 
