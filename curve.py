@@ -62,7 +62,7 @@ def assign_circle_bevel():
 
 def assign_liner_bevel():
     selected = utils.selected()
-    bevelobj = create_liner()
+    bevelobj = create_liner('x')
     assign_bevel_loop( selected , bevelobj)
 
 def select_bevel():
