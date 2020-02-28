@@ -156,16 +156,8 @@ def replace_facenormal():
         if f.select:
             pos = f.calc_center_bounds()
             normal = f.normal
-
-            #法線が(0,0,1)なら別処理
-            d = normal.dot(upvector)
-
-            if d > 0.99 or d < -0.99:
-                xaxis = normal.cross(upvector_x)
-                yaxis = xaxis.cross(normal)
-            else:
-                xaxis = normal.cross(upvector)
-                yaxis = xaxis.cross(normal)
+            xaxis = f.calc_tangent_edge()
+            yaxis = xaxis.cross(normal)
 
             normal.normalize()
             xaxis.normalize()
@@ -477,25 +469,43 @@ def collection_hide():
 #1．原点において意図する姿勢にしたあとapplyする
 #2. 元の状態に戻す。この場合軸を入れ替えた状態のマトリックスにする
 #---------------------------------------------------------------------------------------
-def swap_axis():
+def swap_axis(axis):
     act = utils.getActiveObj()
     matrix = act.matrix_world.to_3x3()
     pos = Vector(act.location)
 
     #第一段階
-    m = Matrix(((-1,0,0),(1,0,0),(0,0,1)))
+    #rotate direction : crockwize, view from the positive directon of the axis. 
+    if axis == 'x':
+        m = Matrix(((1,0,0),(0,0,-1),(0,1,0)))
+    elif axis == 'y':
+        m = Matrix(((0,0,-1),(0,1,0),(1,0,0)))
+    elif axis == 'z':
+        m = Matrix(((0,-1,0),(1,0,0),(0,0,1)))
+
     m.transpose()
     act.matrix_world = m.to_4x4()
-
     bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
     
     
     #第二段階　転置して成分分離
     matrix.transpose()
-    print(matrix)
-    y = -matrix[0]
-    x =  matrix[1]
-    z =  matrix[2]
+
+    if axis == 'x':
+        x =  matrix[0]
+        y =  matrix[2]
+        z = -matrix[1]
+
+    elif axis == 'y':
+        x =  matrix[2]
+        y =  matrix[1]
+        z =  -matrix[0]
+
+    elif axis == 'z':
+        x =  matrix[1]
+        y = -matrix[0]
+        z =  matrix[2]
+
 
     m = Matrix((x,y,z))
 

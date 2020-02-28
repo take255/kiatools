@@ -10,6 +10,8 @@ TYPE = (
 ('CURVE','CURVE','') ,
 ('ARRAY','ARRAY',''),
 ('BOOLEAN','BOOLEAN',''),
+('BEVEL','BEVEL',''),
+('MIRROR','MIRROR',''),
 )
 
 COLLECTION_SEND_TO = '09_ModifierObjects'
@@ -179,3 +181,17 @@ def select(TYPE):
 
     utils.mode_e()
     
+
+#---------------------------------------------------------------------------------------
+#Apply all modifiers
+#---------------------------------------------------------------------------------------
+def apply_all():
+    props = bpy.context.scene.kiatools_oa    
+    modtype = props.modifier_type
+
+    sel = utils.selected()
+
+    for obj in sel:
+        utils.activeObj(obj)
+        for mod in obj.modifiers:                    
+            bpy.ops.object.modifier_apply( modifier = mod.name )

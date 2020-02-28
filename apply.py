@@ -356,8 +356,14 @@ def move_collection_to_other_scene(mode):
     current = bpy.context.window.scene.name
     collection = bpy.context.view_layer.active_layer_collection 
 
-    print('test>>', collection.name)    
-    c = bpy.data.collections[collection.name]
+    move_collection_by_name( collection.name , target , mode )
+
+    utils.sceneActive(target)
+    scene.set_current()
+
+
+def move_collection_by_name( name , target , mode ):
+    c = bpy.data.collections[name]
 
     #現在のコレクションからアンリンク
     if mode:
@@ -365,9 +371,6 @@ def move_collection_to_other_scene(mode):
             col.children.unlink(c)
         
     bpy.data.scenes[target].collection.children.link(c)
-
-    utils.sceneActive(target)
-    scene.set_current()
 
 
 #---------------------------------------------------------------------------------------
@@ -403,11 +406,9 @@ def apply_collection():
             #apply_collection_instanceでは強制マージしておきたい
             act = apply_collection_instance()
             #print(act.name)
-            #result.append( apply_model_sortout( act , act.name + '_tmp', False ) )
-            
+            transform_apply()
             col_name = ob.users_collection[0].name
             result.append( PublishedData( act , col_name , False ) )# <<　複製されているモデルなのでapply_model_sortoutは使わない
-            #utils.scene.activebyname(current_scene_name)
 
     for dat in result:
         apply_model_modifier(dat)
@@ -416,6 +417,7 @@ def apply_collection():
     #コレクションにまとめ,強制マージ
     put_into_collection(current_scene_name , result , utils.sceneActive(fix_scene))
     utils.multiSelection([x.obj for x in result])
+
     bpy.ops.object.join()
 
     utils.getActiveObj().name = new_name
@@ -482,7 +484,9 @@ def instance_substantial_loop( col , current , matrix):
     scn = utils.sceneActive(current)
     
 
-
+#---------------------------------------------------------------------------------------
+#apply Collection Instance
+#---------------------------------------------------------------------------------------
 def apply_collection_instance():
 
     global doDelSame

@@ -186,6 +186,9 @@ class KIATOOLS_PT_toolPanel(utils.panel):
         #self.layout.operator("kiatools.particletools", icon='BLENDER')
 
 
+#---------------------------------------------------------------------------------------
+#Helper Tools
+#---------------------------------------------------------------------------------------
 class KIATOOLS_MT_kia_helper_tools(Operator):
     bl_idname = "kiatools.kia_helper_tools"
     bl_label = "kia helper"
@@ -197,7 +200,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         #アクティブオブジェクトのコンストレインの状態を取得
         display.get_constraint_status()
         modifier.get_param()
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self ,width = 400)
 
     def draw(self, context):
         props = bpy.context.scene.kiatools_oa
@@ -261,8 +264,12 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.instance_substantial" , icon = 'MODIFIER')
         box3.operator( "kiatools.instance_replace" , icon = 'MODIFIER')
 
-
-        box3.operator( "kiatools.swap_axis" , icon = 'MODIFIER')
+        box4 = col.box()
+        box4.label( text = 'swap axis' )
+        row = box4.row()
+        row.operator( "kiatools.swap_axis" , text = 'x').axis = 'x'
+        row.operator( "kiatools.swap_axis" , text = 'y').axis = 'y'
+        row.operator( "kiatools.swap_axis" , text = 'z').axis = 'z'
 
         box4 = col.box()
         box4.label( text = 'instance mirror transform' )
@@ -341,6 +348,10 @@ class KIATOOLS_MT_modelingtools(Operator):
         row1.operator( "kiatools.modifier_apply" , icon = 'CHECKBOX_HLT')
         row1.operator( "kiatools.modifier_show" , icon = 'HIDE_OFF')
         row1.operator( "kiatools.modifier_hide" , icon = 'HIDE_ON')
+        row1.operator( "kiatools.modifier_remove" , icon = 'HIDE_ON')
+
+        col = box.column()
+        col.operator( "kiatools.modifier_apply_all" , icon = 'HIDE_ON')
         
         box = row.box()
         box.label( text = 'constraint (apply)' )
@@ -1043,6 +1054,14 @@ class KIATOOLS_OT_modifier_send_to(Operator):
         modifier.send_to()
         return {'FINISHED'}
 
+class KIATOOLS_OT_modifier_apply_all(Operator):
+    """Apply all modifiers."""
+    bl_idname = "kiatools.modifier_apply_all"
+    bl_label = "apply all"
+    def execute(self, context):
+        modifier.apply_all()
+        return {'FINISHED'}
+
 
 #---------------------------------------------------------------------------------------
 #Constraint
@@ -1086,9 +1105,10 @@ class KIATOOLS_OT_preserve_collections(Operator):
 class KIATOOLS_OT_swap_axis(Operator):
     """軸をスワップする"""
     bl_idname = "kiatools.swap_axis"
-    bl_label = "swap axis"
+    bl_label = ""
+    axis : StringProperty()
     def execute(self, context):
-        locator.swap_axis()
+        locator.swap_axis(self.axis)
         return {'FINISHED'}
 
 
@@ -1125,7 +1145,7 @@ class KIATOOLS_OT_trasnform_apply_x(Operator):
 
 #カーソルの回転をリセット
 class KIATOOLS_OT_trasnform_reset_cursor_rot(Operator):
-    """X軸だけapply"""
+    """Reset cursor rotation"""
     bl_idname = "kiatools.trasnform_reset_cursor_rot"
     bl_label = "reset cursor rot"    
     def execute(self, context):
@@ -1145,7 +1165,7 @@ class KIATOOLS_OT_modeling_del_half_x(Operator):
         return {'FINISHED'}
 
 class KIATOOLS_OT_modeling_pivot_by_facenormal(Operator):
-    """モデルの-X側を削除"""
+    """Asign the model rotate pivot selected face normal"""
     bl_idname = "kiatools.modeling_pivot_by_facenormal"
     bl_label = "pivot_by_facenormal"    
     def execute(self, context):
@@ -1556,7 +1576,7 @@ class Renumber_Pre_Org(Operator):
 classes = (
     KIATOOLS_Props_OA,
 
-    #UI Panel
+    # UI Panel
     KIATOOLS_PT_toolPanel,
     KIATOOLS_MT_kia_helper_tools,
     KIATOOLS_MT_modelingtools,
@@ -1566,7 +1586,7 @@ classes = (
     KIATOOLS_MT_etc,
     #KIATOOLS_MT_particletools,
 
-    #Curve Tool
+    # Curve Tool
     KIATOOLS_OT_curve_create_with_bevel,
     KIATOOLS_OT_curve_create_liner,
     KIATOOLS_OT_curve_assign_bevel,
@@ -1575,7 +1595,7 @@ classes = (
     KIATOOLS_OT_curve_select_bevel,
 
 
-    #helper
+    # helper
     KIATOOLS_OT_replace_locator,
     KIATOOLS_OT_replace_locator_facenormal,
     KIATOOLS_OT_group,
@@ -1586,12 +1606,13 @@ classes = (
     KIATOOLS_OT_collection_sort,
     KIATOOLS_OT_locator_tobone,
 
-    #instance
+    # instance
     KIATOOLS_OT_instance_select_collection,
     KIATOOLS_OT_instance_instancer,
     KIATOOLS_OT_instance_substantial,
     KIATOOLS_OT_instance_replace,
 
+    # modifier
     KIATOOLS_OT_modifier_asign,
     KIATOOLS_OT_modifier_show,
     KIATOOLS_OT_modifier_hide,
@@ -1599,14 +1620,14 @@ classes = (
     KIATOOLS_OT_modifier_select_curve,
     KIATOOLS_OT_modifier_select_boolean,
     KIATOOLS_OT_modifier_send_to,
+    KIATOOLS_OT_modifier_apply_all,
 
-    #コンストレイン
+    # constraint
     KIATOOLS_OT_constraint_asign,
     KIATOOLS_OT_instance_mirror,
     KIATOOLS_OT_instance_mirror_geom,
 
-    #object applier
-
+    # object applier
     KIATOOLS_MT_new_scene,
     KIATOOLS_OT_move_model,
     KIATOOLS_OT_apply_collection,
@@ -1616,12 +1637,12 @@ classes = (
     KIATOOLS_OT_apply_model,
     KIATOOLS_OT_move_collection,
 
-    #transform
+    # transform
     KIATOOLS_OT_swap_axis,
     KIATOOLS_OT_trasnform_apply_x,
     KIATOOLS_OT_trasnform_reset_cursor_rot,
 
-    #etc
+    # etc
     KIATOOLS_OT_transform_rotate_axis,
     KIATOOLS_OT_transform_scale_abs,
     KIATOOLS_OT_constraint_to_bone,
