@@ -17,7 +17,10 @@ def create_with_bevel(dir):
     curve  = create_liner(dir)
     curve.data.bevel_object = circleobj
     curve.data.use_fill_caps = True
-    curve.data.use_uv_as_generated = True
+    try:
+        obj.data.use_uv_as_generated = True    
+    except:
+        pass
 
 
 #直線カーブを作る
@@ -46,7 +49,10 @@ def assign_bevel_loop( selected , bevelobj):
     for obj in selected:
         obj.data.bevel_object = bevelobj
         obj.data.use_fill_caps = True
-        obj.data.use_uv_as_generated = True    
+        try:
+            obj.data.use_uv_as_generated = True    
+        except:
+            pass
 
 
 def assign_bevel():

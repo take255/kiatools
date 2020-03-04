@@ -528,21 +528,23 @@ CONST_PARAM_ROT_DEST_Y = ( ( 3.14, -3.14),( -3.14 , 3.14 ),( 3.14 , -3.14 ) )
 #オブジェクトをインスタンスしてX軸でミラーコンストレインする
 #---------------------------------------------------------------------------------------
 def mirror(axis):
-    ob_source = utils.getActiveObj()
-    bpy.ops.object.duplicate_move_linked()
+    for ob in utils.selected():
+        utils.act(ob)
+        ob_source = utils.getActiveObj()
+        bpy.ops.object.duplicate_move_linked()
 
-    ob_target = utils.getActiveObj()
-    ob_target.matrix_world = Matrix()
+        ob_target = utils.getActiveObj()
+        ob_target.matrix_world = Matrix()
 
-    if axis == 'x':
-        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
-        const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
-        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
+        if axis == 'x':
+            const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'LOCATION' ,'' )
+            const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE , CONST_PARAM_ROT_DEST ,'ROTATION' ,'_rot')
+            const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE , CONST_PARAM_LOC_DEST ,'SCALE' ,'_scale')
 
-    if axis == 'y':
-        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'LOCATION' ,'' )
-        const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE_Y , CONST_PARAM_ROT_DEST_Y ,'ROTATION' ,'_rot')
-        const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'SCALE' ,'_scale')
+        if axis == 'y':
+            const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'LOCATION' ,'' )
+            const_setting( ob_source , ob_target , CONST_PARAM_ROT_SOURCE_Y , CONST_PARAM_ROT_DEST_Y ,'ROTATION' ,'_rot')
+            const_setting( ob_source , ob_target , CONST_PARAM_LOC_SOURCE_Y , CONST_PARAM_LOC_DEST_Y ,'SCALE' ,'_scale')
 
 
 
@@ -621,8 +623,9 @@ def mirror_geom(axis):
 #         exec('constraint.to_max_%s%s = %02f' % ( x , suffix , val[1]) )
 
 
-
+#---------------------------------------------------------------------------------------
 #replace
+#---------------------------------------------------------------------------------------
 def instance_replace():
     act_org = utils.getActiveObj()
     selected = utils.selected() 
@@ -647,6 +650,56 @@ def instance_replace():
     
     for ob in selected:
         utils.delete(ob)
+
+
+#---------------------------------------------------------------------------------------
+# add bones at the selected objects
+#---------------------------------------------------------------------------------------
+class AddBoneObj():
+    def __init__( self , ob ):
+        m = Matrix(ob.matrix_world)
+        m.transpose()
+        self.x = [ m[0][0], m[0][1], m[0][2] ]
+        self.y = [ m[1][0], m[1][1], m[1][2] ]
+        self.z = Vector([ m[2][0], m[2][1], m[2][2] ])
+        self.head = Vector([ m[3][0], m[3][1], m[3][2] ])
+
+        self.name = ob.name
+
+        self.axis_forward = {}
+
+        self.axis_forward['X']  = Vector([ m[0][0], m[0][1], m[0][2] ])
+        self.axis_forward['-X'] = Vector([ -m[0][0], -m[0][1], -m[0][2] ])
+        self.axis_forward['Y']  = Vector([ m[1][0], m[1][1], m[1][2] ])
+        self.axis_forward['-Y'] = Vector([ -m[1][0], -m[1][1], -m[1][2] ])
+        self.axis_forward['Z'] = Vector([ m[3][0], m[3][1], m[3][2] ])
+        self.axis_forward['-Z']  = Vector([ -m[3][0], -m[3][1], -m[3][2] ])
+
+
+def add_bone():
+    props = bpy.context.scene.kiatools_oa
+    amt = utils.getActiveObj()
+
+    af = props.axis_forward
+    au = props.axis_up
+
+    m_array = []
+    for ob in utils.selected():
+        if ob != amt:
+            m_array.append( AddBoneObj(ob) )  
+    
+    utils.act(amt)
+    utils.mode_e()
+
+    for m in m_array:
+        b = amt.data.edit_bones.new( m.name )
+        b.head = m.head
+        #b.tail = m.head + m.z
+        b.tail = m.head + m.axis_forward[ af ]
+        print(m.axis_forward[ af ])
+        bpy.ops.armature.select_all(action='DESELECT')
+        
+
 
         
 

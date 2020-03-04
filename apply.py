@@ -379,6 +379,7 @@ def move_collection_by_name( name , target , mode ):
 def apply_collection():
     global ApplyCollectionMode
     ApplyCollectionMode = True #コレクションインスタンスの実体化時に強制マージする
+    props = bpy.context.scene.kiatools_oa
 
     current_scene_name = bpy.context.scene.name
     fix_scene = target_scene()
@@ -388,7 +389,11 @@ def apply_collection():
     collection = utils.collection.get_active()
 
     get_obj_from_collection( collection )#Collections配列に取得
-    new_name = collection.name + '_orgc'
+    
+    if props.add_suffix == True:
+        new_name = collection.name + '_orgc'
+    else:
+        new_name = collection.name
 
     #選択されたコレクションにリンクされたオブジェクトを取得
     for ob in bpy.context.scene.objects: 
@@ -420,6 +425,9 @@ def apply_collection():
 
     bpy.ops.object.join()
 
+    if new_name in [ob.name for ob in bpy.data.objects]:
+        utils.delete(bpy.data.objects[new_name])
+        
     utils.getActiveObj().name = new_name
     ApplyCollectionMode = False
 

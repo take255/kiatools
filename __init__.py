@@ -63,6 +63,8 @@ imp.reload(modeling)
 #頂点カラーデータ
 MATERIAL_TYPE = ( ('METAL','METAL','') , ('LEATHER','LEATHER','') , ('CLOTH','CLOTH','') , ('OTHERS','OTHERS','') )
 #MATERIAL_NUMBER = {'METAL':0 , 'LEATHER':1 , 'CLOTH':2 , 'OTHER':3 }
+AXIS = (('X','X','X'), ('Y','Y','Y'), ('Z','Z','Z'), ('-X','-X','-X'), ('-Y','-Y','-Y'), ('-Z','-Z','-Z'))
+
 
 bl_info = {
 "name": "kiatools",
@@ -106,6 +108,7 @@ class KIATOOLS_Props_OA(PropertyGroup):
     merge_apply : BoolProperty(name="all" ,  default = True)
     merge_by_material : BoolProperty(name="material" ,  default = True)
     create_collection : BoolProperty(name="create collection" ,  default = False)
+    add_suffix : BoolProperty(name="add suffix" ,  default = True)
 
     #シーン名
     scene_name : StringProperty(name="Scene", maxlen=63 ,update = go_scene)
@@ -129,6 +132,11 @@ class KIATOOLS_Props_OA(PropertyGroup):
 
     displayed_collection : StringProperty(name="Coll", maxlen=63)    
     displayed_allcollections : CollectionProperty(type=PropertyGroup)
+
+    # add bone at the selected object.
+    axis_forward : EnumProperty(items = AXIS , name = 'forward',default = '-Z' )
+    axis_up : EnumProperty(items = AXIS , name = 'up' ,default = 'Y')
+
 
 
     #モディファイヤ関連
@@ -255,6 +263,11 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.trasnform_reset_cursor_rot" , icon = 'PINNED')
         box3.operator( "kiatools.modeling_pivot_by_facenormal" , icon = 'PINNED')
 
+        box5 = col.box()
+        box5.label( text = 'modeling' )
+        box5.operator( "kiatools.modeling_del_half_x")
+
+
         #instacne
         col = row.column()
         box3 = col.box()
@@ -285,11 +298,14 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         row.operator( "kiatools.instance_mirror_geom" , text = 'y' ).op = 'y'
         row.operator( "kiatools.instance_mirror_geom" , text = 'z' ).op = 'z'
 
-
-
-        box5 = col.box()
-        box5.label( text = 'modeling' )
-        box5.operator( "kiatools.modeling_del_half_x")
+        # Add bone at the selected objects
+        # First, select some objects ,select bone in the end.
+        box3 = col.box()
+        box3.label( text = 'add bone' )
+        box3.operator( "kiatools.locator_add_bone" , icon = 'PINNED')
+        row1 = box3.row()
+        row1.prop(props, 'axis_forward', icon='BLENDER' )
+        row1.prop(props, 'axis_up', icon='BLENDER')
 
 
 
@@ -466,6 +482,9 @@ class KIATOOLS_MT_object_applier(Operator):
         row = box.row()
         row.prop(props, "create_collection")
         row.prop(props, "deleteparticle_apply")
+
+        row = box.row()
+        row.prop(props, "add_suffix")
 
 
 # class KIATOOLS_MT_particletools(Operator):
@@ -963,6 +982,7 @@ class KIATOOLS_MT_new_scene(Operator):
         bpy.ops.scene.new(type='EMPTY')     
         bpy.context.scene.name = scene_name
         scene.set_current()
+
         return {'FINISHED'}
 
 #パーティクルインスタンスのApply
@@ -1097,6 +1117,16 @@ class KIATOOLS_OT_preserve_collections(Operator):
     def execute(self, context):
         display.preserve_collections()
         return {'FINISHED'}
+
+# Add bone at the selected objects
+class KIATOOLS_OT_locator_add_bone(Operator):
+    """# Add bone at the selected objects"""
+    bl_idname = "kiatools.locator_add_bone"
+    bl_label = "add bone"
+    def execute(self, context):
+        locator.add_bone()
+        return {'FINISHED'}
+
 
 
 #---------------------------------------------------------------------------------------
@@ -1605,6 +1635,7 @@ classes = (
     KIATOOLS_OT_preserve_collections,
     KIATOOLS_OT_collection_sort,
     KIATOOLS_OT_locator_tobone,
+    KIATOOLS_OT_locator_add_bone,
 
     # instance
     KIATOOLS_OT_instance_select_collection,
