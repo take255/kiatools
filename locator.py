@@ -422,6 +422,26 @@ def instance_select_collection():
 
     return collection
 
+
+#---------------------------------------------------------------------------------------
+#Invert selected object using last selection.
+#---------------------------------------------------------------------------------------
+def invert_last_selection():    
+    amt = utils.getActiveObj()
+    selected = utils.selected()
+    matrix = Matrix(amt.matrix_world)
+    matrix.invert()
+
+    utils.deselectAll()
+
+    for ob in selected:
+        if ob != amt:
+            m = ob.matrix_world
+            ob.matrix_world = matrix @ m
+            utils.act(ob)
+            bpy.ops.object.transform_apply( location = True , rotation=True , scale=True )
+
+
 #---------------------------------------------------------------------------------------
 #ビューレイヤーを再帰的に調べて表示状態にする
 #---------------------------------------------------------------------------------------
@@ -672,8 +692,8 @@ class AddBoneObj():
         self.axis_forward['-X'] = Vector([ -m[0][0], -m[0][1], -m[0][2] ])
         self.axis_forward['Y']  = Vector([ m[1][0], m[1][1], m[1][2] ])
         self.axis_forward['-Y'] = Vector([ -m[1][0], -m[1][1], -m[1][2] ])
-        self.axis_forward['Z'] = Vector([ m[3][0], m[3][1], m[3][2] ])
-        self.axis_forward['-Z']  = Vector([ -m[3][0], -m[3][1], -m[3][2] ])
+        self.axis_forward['Z'] = Vector([ m[2][0], m[2][1], m[2][2] ])
+        self.axis_forward['-Z']  = Vector([ -m[2][0], -m[2][1], -m[2][2] ])
 
 
 def add_bone():
@@ -699,6 +719,18 @@ def add_bone():
         print(m.axis_forward[ af ])
         bpy.ops.armature.select_all(action='DESELECT')
         
+
+# First, select object next select armature. Enter edit mode and select bone to align.
+def snap_bone_at_obj():
+    amt = utils.getActiveObj()
+    bone = utils.get_active_bone()
+
+    for ob in utils.selected():
+        if ob != amt:
+            loc = ob.location
+    
+    bone.head = loc
+
 
 
         

@@ -61,7 +61,7 @@ imp.reload(modeling)
 
 
 #頂点カラーデータ
-MATERIAL_TYPE = ( ('METAL','METAL','') , ('LEATHER','LEATHER','') , ('CLOTH','CLOTH','') , ('OTHERS','OTHERS','') )
+MATERIAL_TYPE = ( ('METAL','METAL','') , ('LEATHER','LEATHER','') , ('CLOTH','CLOTH','') , ('OTHERS','OTHERS','') , ('BUFFER','BUFFER','') )
 #MATERIAL_NUMBER = {'METAL':0 , 'LEATHER':1 , 'CLOTH':2 , 'OTHER':3 }
 AXIS = (('X','X','X'), ('Y','Y','Y'), ('Z','Z','Z'), ('-X','-X','-X'), ('-Y','-Y','-Y'), ('-Z','-Z','-Z'))
 
@@ -276,6 +276,7 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         box3.operator( "kiatools.instance_instancer" , icon = 'MODIFIER')
         box3.operator( "kiatools.instance_substantial" , icon = 'MODIFIER')
         box3.operator( "kiatools.instance_replace" , icon = 'MODIFIER')
+        box3.operator( "kiatools.instance_invert_last_selection" , icon = 'MODIFIER')
 
         box4 = col.box()
         box4.label( text = 'swap axis' )
@@ -301,11 +302,14 @@ class KIATOOLS_MT_kia_helper_tools(Operator):
         # Add bone at the selected objects
         # First, select some objects ,select bone in the end.
         box3 = col.box()
-        box3.label( text = 'add bone' )
+        box3.label( text = 'bone' )
         box3.operator( "kiatools.locator_add_bone" , icon = 'PINNED')
         row1 = box3.row()
         row1.prop(props, 'axis_forward', icon='BLENDER' )
         row1.prop(props, 'axis_up', icon='BLENDER')
+
+        box3.operator( "kiatools.locator_snap_bone_at_obj" , icon = 'PINNED')
+        
 
 
 
@@ -364,7 +368,7 @@ class KIATOOLS_MT_modelingtools(Operator):
         row1.operator( "kiatools.modifier_apply" , icon = 'CHECKBOX_HLT')
         row1.operator( "kiatools.modifier_show" , icon = 'HIDE_OFF')
         row1.operator( "kiatools.modifier_hide" , icon = 'HIDE_ON')
-        row1.operator( "kiatools.modifier_remove" , icon = 'HIDE_ON')
+        row1.operator( "kiatools.modifier_remove" , icon = 'TRASH')
 
         col = box.column()
         col.operator( "kiatools.modifier_apply_all" , icon = 'HIDE_ON')
@@ -561,6 +565,7 @@ class KIATOOLS_MT_skinningtools(Operator):
         col.operator("kiatools.skinning_assign_maxweights")#!!!
         col.operator("kiatools.skinning_weights_mirror")#!!!
         col.operator("kiatools.skinning_weights_transfer")#!!!
+        col.operator("kiatools.skinning_mirror_transfer")#!!!
 
 
         #row = layout.row(align=False)
@@ -617,8 +622,16 @@ class KIATOOLS_MT_materialtools(Operator):
         row.prop(props, "material_index" )
 
         row = col.row()
-        row.operator("kiatools.material_assign_vertex_color")
+        row.operator("kiatools.material_assign_vertex_color", text = 'assign').mode = 0
+        row.operator("kiatools.material_assign_vertex_color", text = 'assign(selected)').mode = 1
         row.operator("kiatools.material_convert_vertex_color")
+
+        row = col.row()
+        row.operator("kiatools.pick_vertex_color", text = 'pick').mode = True
+        row.operator("kiatools.pick_vertex_color", text = 'put').mode = False
+
+
+        
 
 
 
@@ -850,6 +863,14 @@ class KIATOOLS_OT_instance_replace(Operator):
         locator.instance_replace()
         return {'FINISHED'}
 
+class KIATOOLS_OT_instance_invert_last_selection(Operator):
+    """Inverse selected objects using last selection."""
+    bl_idname = "kiatools.instance_invert_last_selection"
+    bl_label = "invert using last selection"
+    def execute(self, context):
+        locator.invert_last_selection()
+        return {'FINISHED'}
+
 
 #---------------------------------------------------------------------------------------
 #ObjectApplier
@@ -1049,6 +1070,16 @@ class KIATOOLS_OT_modifier_apply(Operator):
         modifier.apply_mod()
         return {'FINISHED'}
 
+class KIATOOLS_OT_modifier_remove(Operator):    
+    """delete the modifier of selected type"""
+    bl_idname = "kiatools.modifier_remove"
+    bl_label = ""
+
+    def execute(self, context):
+        modifier.delete_mod()
+        return {'FINISHED'}
+
+
 #選択したモデルのモディファイヤカーブのカーブ選択。
 class KIATOOLS_OT_modifier_select_curve(Operator):
     """選択したモデルのモディファイヤカーブのカーブ選択"""
@@ -1125,6 +1156,14 @@ class KIATOOLS_OT_locator_add_bone(Operator):
     bl_label = "add bone"
     def execute(self, context):
         locator.add_bone()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_locator_snap_bone_at_obj(Operator):
+    """# Add bone at the selected objects"""
+    bl_idname = "kiatools.locator_snap_bone_at_obj"
+    bl_label = "snap bone"
+    def execute(self, context):
+        locator.snap_bone_at_obj()
         return {'FINISHED'}
 
 
@@ -1323,6 +1362,15 @@ class KIATOOLS_OT_skinning_weights_transfer(Operator):
         skinning.weights_transfer()
         return {'FINISHED'}
 
+class KIATOOLS_OT_skinning_mirror_transfer(Operator):
+    """複数モデルのウェイト転送。コピー先を複数選択し、最後にコピー元のモデルを選択して実行"""
+    bl_idname = "kiatools.skinning_mirror_transfer"
+    bl_label = "mirror transfer"
+    def execute(self, context):
+        skinning.mirror_transfer()
+        return {'FINISHED'}
+
+
 class KIATOOLS_OT_skinning_apply_not_armature_modifiers(Operator):
     """アーマチュア以外のモディファイヤをApplyする。"""
     bl_idname = "kiatools.skinning_apply_not_armature_modifiers"
@@ -1381,8 +1429,9 @@ class KIATOOLS_OT_skinning_delete_all_vtxgrp(Operator):
 class KIATOOLS_OT_material_assign_vertex_color(Operator):
     bl_idname = "kiatools.material_assign_vertex_color"
     bl_label = "assign vtxcolor"
+    mode : IntProperty()
     def execute(self, context):
-        material.assign_vertex_color()
+        material.assign_vertex_color(self.mode)
         return {'FINISHED'}
 
 class KIATOOLS_OT_material_convert_vertex_color(Operator):
@@ -1391,6 +1440,15 @@ class KIATOOLS_OT_material_convert_vertex_color(Operator):
     bl_label = "convert vtxcolor"
     def execute(self, context):
         material.convert_vertex_color()
+        return {'FINISHED'}
+
+class KIATOOLS_OT_material_pick_vertex_color(Operator):
+    """ First, select polugon face (not vertex) and execute this command."""
+    bl_idname = "kiatools.pick_vertex_color"
+    bl_label = ""
+    mode : BoolProperty()
+    def execute(self, context):
+        material.pick_vertex_color(self.mode)
         return {'FINISHED'}
 
 
@@ -1636,12 +1694,14 @@ classes = (
     KIATOOLS_OT_collection_sort,
     KIATOOLS_OT_locator_tobone,
     KIATOOLS_OT_locator_add_bone,
+    KIATOOLS_OT_locator_snap_bone_at_obj,
 
     # instance
     KIATOOLS_OT_instance_select_collection,
     KIATOOLS_OT_instance_instancer,
     KIATOOLS_OT_instance_substantial,
     KIATOOLS_OT_instance_replace,
+    KIATOOLS_OT_instance_invert_last_selection,
 
     # modifier
     KIATOOLS_OT_modifier_asign,
@@ -1652,6 +1712,7 @@ classes = (
     KIATOOLS_OT_modifier_select_boolean,
     KIATOOLS_OT_modifier_send_to,
     KIATOOLS_OT_modifier_apply_all,
+    KIATOOLS_OT_modifier_remove,
 
     # constraint
     KIATOOLS_OT_constraint_asign,
@@ -1708,10 +1769,12 @@ classes = (
     KIATOOLS_OT_skinning_delete_by_word,
     KIATOOLS_OT_skinning_delete_not_exist_vtxgrp,
     KIATOOLS_OT_skinning_delete_all_vtxgrp,
+    KIATOOLS_OT_skinning_mirror_transfer,
 
     #マテリアル
     KIATOOLS_OT_material_assign_vertex_color,
     KIATOOLS_OT_material_convert_vertex_color,
+    KIATOOLS_OT_material_pick_vertex_color,
 
     #モデリング
     KIATOOLS_OT_modeling_del_half_x,

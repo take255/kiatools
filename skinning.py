@@ -1,6 +1,7 @@
 import bpy
 import imp
 import re
+import math
 
 from . import utils
 imp.reload(utils)
@@ -246,7 +247,8 @@ def delete_unselectedweights():
     for obj in selected:
         if obj.type != 'ARMATURE':
             #選択モデルをアクティブに
-            objects.active =obj
+            #objects.active =obj
+            utils.act(obj)
     
             msh = obj.data
             vtxCount = len(msh.vertices)#頂点数
@@ -257,7 +259,8 @@ def delete_unselectedweights():
                     if group.name not in result:
                         group.add( [i], 0, 'REPLACE' )
 
-            obj.select = True
+            #obj.select = True
+            utils.select(obj,True)
 
 
 
@@ -316,7 +319,7 @@ def getTgt(v,array):
             break
     return ret
 
-def weights_mirror(self):
+def weights_mirror():
     index2name={}
     nameflip={}
 
@@ -341,3 +344,57 @@ def weights_mirror(self):
             for vge in vgs:
                 tvg=obj.vertex_groups[nameflip[index2name[vge.group]]]
                 tvg.add([tgt.index],vge.weight,'REPLACE')
+
+
+# Use this tool when made objects instance.
+def mirror_transfer():
+   #ボーン名
+    bonearray = set()
+
+    for obj in utils.selected():
+        # objname = obj.name
+        boneArray = []
+        # bonedic = {}
+        #targetarray = []
+        targetbone = []
+
+        for group in obj.vertex_groups:
+            boneArray.append(group.name)
+
+            
+        for i,bone in enumerate( boneArray ): 
+            if bone.find('L_') != -1:
+                # bonedic[ i ] = boneArray.index(bone.replace('L_','R_'))
+                # targetarray.append(boneArray.index(bone.replace('L_','R_')))
+                index = boneArray.index(bone.replace('L_','R_'))
+                targetbone.append(boneArray[index])
+            elif bone.find('R_') != -1:
+                # bonedic[ i ] = boneArray.index(bone.replace('R_','L_'))
+                # targetarray.append(boneArray.index(bone.replace('R_','L_')))
+                index = boneArray.index(bone.replace('R_','L_'))
+                targetbone.append(boneArray[index])
+
+            else:
+                bonedic[ i ] = i
+                #targetarray.append(i)
+                targetbone.append(bone)
+
+        # #頂点の情報
+        msh = obj.data
+
+        vtxarray = []
+        for v in msh.vertices:
+            grparray  = []
+            for vge in v.groups:
+                if vge.weight > 0.00001:#ウェイト値０は除外
+                    index = vge.group
+                    grparray.append([ targetbone[index] , vge.weight ] ) 
+                    vge.weight = 0.0            
+            vtxarray.append(grparray)
+            
+
+        for i,point in enumerate( vtxarray ):
+            for w in point:
+                vg = obj.vertex_groups[w[0]]
+                vg.add( [i], float(w[1]), 'REPLACE' )
+                

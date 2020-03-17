@@ -12,6 +12,7 @@ TYPE = (
 ('BOOLEAN','BOOLEAN',''),
 ('BEVEL','BEVEL',''),
 ('MIRROR','MIRROR',''),
+('SUBSURF','SUBSURF',''),
 )
 
 COLLECTION_SEND_TO = '09_ModifierObjects'
@@ -158,6 +159,19 @@ def apply_mod():
         for mod in obj.modifiers:                    
             if modtype == mod.type:
                 bpy.ops.object.modifier_apply( modifier = mod.name )
+
+#---------------------------------------------------------------------------------------
+def delete_mod():
+    props = bpy.context.scene.kiatools_oa    
+    modtype = props.modifier_type
+
+    sel = utils.selected()
+
+    for obj in sel:
+        utils.activeObj(obj)
+        for mod in obj.modifiers:                    
+            if modtype == mod.type:
+                bpy.ops.object.modifier_remove( modifier = mod.name )
 
 
 #---------------------------------------------------------------------------------------

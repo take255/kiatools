@@ -521,6 +521,13 @@ def apply_collection_instance():
 
     act = utils.getActiveObj()
 
+    #If actname contain '_org' , delete '_org'.
+    actname = act.name
+    
+    if actname.find('_org') != -1:
+        actname = actname.replace('_org','')
+    
+
     #トランスフォームは一度初期化。マトリックスは最後にかける
     #コンストレインでミラーしている場合は、姿勢を戻したときにコンストレインが不具合を起こす
     #コンストレインを切った状態のマトリックスを保持して対処
@@ -533,7 +540,6 @@ def apply_collection_instance():
 
     bpy.context.view_layer.update()#コンストレイン解除時のマトリックスを強制アップデート
     matrix_source = Matrix(act.matrix_world) #コピー元のモデルのためのマトリックス
-    print(matrix_source)
     
     act.matrix_world = Matrix()
 
@@ -589,6 +595,7 @@ def apply_collection_instance():
 
         utils.scene.move_obj_scene(act)#In the case not exist obj in current scene, move to fit scene.
         utils.act(act)
+        act.name = actname
 
     #マテリアルでモデルを仕分けする
     elif domergebymaterial:
@@ -656,6 +663,7 @@ def transform_apply():
 #---------------------------------------------------------------------------------------
 def model_org():
     fix_scn = target_scene()
+    domerge = doMerge()
     if not fix_scn:
         return
     current_scene_name = bpy.context.scene.name
@@ -695,7 +703,7 @@ def model_org():
     put_into_collection(current_scene_name , result , scn)
 
     #マージする
-    if doMerge():
+    if domerge:
         utils.multiSelection([x.obj for x in result])
         bpy.ops.object.join()
     
