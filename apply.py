@@ -381,6 +381,8 @@ def apply_collection():
     ApplyCollectionMode = True #コレクションインスタンスの実体化時に強制マージする
     props = bpy.context.scene.kiatools_oa
 
+    suffix = props.add_suffix
+
     current_scene_name = bpy.context.scene.name
     fix_scene = target_scene()
 
@@ -390,7 +392,7 @@ def apply_collection():
 
     get_obj_from_collection( collection )#Collections配列に取得
     
-    if props.add_suffix == True:
+    if suffix == True:
         new_name = collection.name + '_orgc'
     else:
         new_name = collection.name
